@@ -1,0 +1,10 @@
+.vscode/*
+.mxproject
+build/*
+*.o
+*.d
+*.lst
+*.elf
+*.bin
+*.hex
+*.map
