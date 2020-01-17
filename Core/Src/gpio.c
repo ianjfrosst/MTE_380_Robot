@@ -36,6 +36,8 @@
         * Output
         * EVENT_OUT
         * EXTI
+     PG9   ------> USART6_RX
+     PG14   ------> USART6_TX
 */
 void MX_GPIO_Init(void)
 {
@@ -81,6 +83,14 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PG9 PG14 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_14;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
 }
 

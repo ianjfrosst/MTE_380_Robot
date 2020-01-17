@@ -139,16 +139,15 @@ AS_INCLUDES =  \
 C_INCLUDES =  \
 -ICore/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
--IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \
+-IDrivers/CMSIS/Include \
+-IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
--IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
--IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
--IDrivers/CMSIS/Include
+-IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
 
 
 # compile gcc flags
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -std=c11 -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2
