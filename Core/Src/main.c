@@ -29,7 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,7 +73,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-  
+
 
   /* Enable I-Cache---------------------------------------------------------*/
   SCB_EnableICache();
@@ -108,13 +108,13 @@ int main(void)
   /* USER CODE END 2 */
   /* Init scheduler */
   osKernelInitialize();
- 
+
   /* Call init function for freertos objects (in freertos.c) */
-  MX_FREERTOS_Init(); 
- 
+  MX_FREERTOS_Init();
+
   /* Start scheduler */
   osKernelStart();
- 
+
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -138,14 +138,14 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Configure LSE Drive Capability 
+  /** Configure LSE Drive Capability
   */
   HAL_PWR_EnableBkUpAccess();
-  /** Configure the main internal regulator output voltage 
+  /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
@@ -159,13 +159,13 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Activate the Over-Drive mode 
+  /** Activate the Over-Drive mode
   */
   if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -234,11 +234,10 @@ void Error_Handler(void)
   * @param  line: assert_param error line source number
   * @retval None
   */
-void assert_failed(uint8_t *file, uint32_t line)
-{ 
+void assert_failed(char* file, uint32_t line)
+{
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  printf("Assertion failed at %s:%ld\n", file, line);
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

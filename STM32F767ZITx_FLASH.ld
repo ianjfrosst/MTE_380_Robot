@@ -61,27 +61,25 @@ _Min_Stack_Size = 0x1000;     /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-ITCM (x)        : ORIGIN = 0x00000000, LENGTH = 16K
-DTCM (rw)       : ORIGIN = 0x20000000, LENGTH = 128K
-RAM (xrw)       : ORIGIN = 0x20020000, LENGTH = 386K
-FLASH (rx)      : ORIGIN = 0x00200000, LENGTH = 2048K
+  ITCM (rwx)      : ORIGIN = 0x00000000, LENGTH = 16K
+  DTCM (rwx)      : ORIGIN = 0x20000000, LENGTH = 128K
+  RAM (rwx)       : ORIGIN = 0x20020000, LENGTH = 384K
+  FLASH (rx)      : ORIGIN = 0x00200000, LENGTH = 2048K
 }
 
 /* Define output sections */
 SECTIONS
 {
   /* The startup code goes first into FLASH */
-  .isr_vector :
+  .isr_vector : ALIGN(4)
   {
-    . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
-    . = ALIGN(4);
+    . = 0x200; /* End of vector table */
   } >FLASH
 
   /* The program code and other data goes into FLASH */
-  .text :
+  .text : ALIGN(4)
   {
-    . = ALIGN(4);
     *(.text)           /* .text sections (code) */
     *(.text*)          /* .text* sections (code) */
     *(.glue_7)         /* glue arm to thumb code */
@@ -96,9 +94,8 @@ SECTIONS
   } >FLASH
 
   /* Constant data goes into FLASH */
-  .rodata :
+  .rodata : ALIGN(4)
   {
-    . = ALIGN(4);
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
@@ -111,7 +108,7 @@ SECTIONS
     __exidx_end = .;
   } >FLASH
 
-  .preinit_array     :
+  .preinit_array :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
@@ -132,13 +129,26 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  /* used by the startup to initialize RAM_FUNCs */
+  _siramfunc = LOADADDR(.RamFunc);
+
+  /* Load RAM_FUNCs into ITCM RAM */
+  .RamFunc : ALIGN(4)
+  {
+    _sramfunc = .;
+    *(.RamFunc)
+    *(.RamFunc*)
+
+    . = ALIGN(4);
+    _eramfunc = .;
+  } >ITCM AT> FLASH
+
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data :
+  .data : ALIGN(4)
   {
-    . = ALIGN(4);
     _sdata = .;        /* create a global symbol at data start */
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
@@ -147,10 +157,8 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >DTCM AT> FLASH
 
-
   /* Uninitialized data section */
-  . = ALIGN(4);
-  .bss :
+  .bss : ALIGN(4)
   {
     /* This is used by the startup in order to initialize the .bss secion */
     _sbss = .;         /* define a global symbol at bss start */
@@ -174,7 +182,6 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >DTCM
-
 
 
   /* Remove information from the standard libraries */
