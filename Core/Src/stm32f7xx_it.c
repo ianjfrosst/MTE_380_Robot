@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
-  
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
- 
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -65,7 +65,7 @@ extern TIM_HandleTypeDef htim7;
 /* USER CODE END EV */
 
 /******************************************************************************/
-/*           Cortex-M7 Processor Interruption and Exception Handlers          */ 
+/*           Cortex-M7 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
 /**
   * @brief This function handles Non maskable interrupt.
@@ -79,6 +79,9 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
+
+
+#if 0
 
 /**
   * @brief This function handles Hard fault interrupt.
@@ -139,6 +142,8 @@ void UsageFault_Handler(void)
     /* USER CODE END W1_UsageFault_IRQn 0 */
   }
 }
+
+#endif
 
 /**
   * @brief This function handles Debug monitor.

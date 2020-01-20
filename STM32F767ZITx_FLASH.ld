@@ -52,12 +52,6 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
-/* Highest address of the user mode stack */
-_estack = 0x20020000;         /* end of DTCM RAM */
-/* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x1000;      /* required amount of heap  */
-_Min_Stack_Size = 0x1000;     /* required amount of stack */
-
 /* Specify the memory areas */
 MEMORY
 {
@@ -172,17 +166,29 @@ SECTIONS
     __bss_end__ = _ebss;
   } >DTCM
 
-  /* User_heap_stack section, used to check that there is enough RAM left */
-  ._user_heap_stack :
+  .heap (COPY) : ALIGN(8)
   {
+    __end__ = .;
+    PROVIDE(end = .);
+    PROVIDE(_end = .);
+    *(.heap*)
     . = ALIGN(8);
-    PROVIDE ( end = . );
-    PROVIDE ( _end = . );
-    . = . + _Min_Heap_Size;
-    . = . + _Min_Stack_Size;
+    __HeapLimit = .;
+  } >DTCM
+
+  .stack (COPY) : ALIGN(8)
+  {
+    *(.stack*)
     . = ALIGN(8);
   } >DTCM
 
+
+  /* Highest address of the user mode stack */
+  __StackTop = ORIGIN(DTCM) + LENGTH(DTCM);   /* end of DTCM RAM */
+  __StackLimit = __StackTop - SIZEOF(.stack);
+
+  /* Check if data + heap + stack exceeds RAM limit */
+  ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

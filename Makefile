@@ -45,6 +45,9 @@ Core/Src/freertos.c \
 Core/Src/gpio.c \
 Core/Src/i2c.c \
 Core/Src/main.c \
+Core/Src/mpu9250.c \
+Core/Src/panic.c \
+Core/Src/retarget.c \
 Core/Src/stm32f7xx_hal_msp.c \
 Core/Src/stm32f7xx_hal_timebase_tim.c \
 Core/Src/stm32f7xx_it.c \
@@ -159,6 +162,8 @@ MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
 # C defines
 C_DEFS =  \
+-D__STACK_SIZE=0x1000 \
+-D__HEAP_SIZE=0x1000 \
 -DUSE_HAL_DRIVER \
 -DUSE_FULL_ASSERT \
 -DUSE_FULL_LL_DRIVER \
@@ -184,7 +189,9 @@ C_INCLUDES =  \
 
 
 # compile gcc flags
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -std=c11 -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -std=gnu11
+CFLAGS += -Wall -Wextra -Wno-unused-parameter
+CFLAGS += -fno-builtin -fstack-usage -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2

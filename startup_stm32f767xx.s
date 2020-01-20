@@ -60,7 +60,39 @@ defined in linker script */
 .word  _sbss
 /* end address for the .bss section. defined in linker script */
 .word  _ebss
-/* stack used for SystemInit_ExtMemCtl; always internal RAM used */
+
+/* Dummy sections for stack and heap */
+  .section  .stack
+  .align  3
+#ifdef __STACK_SIZE
+  .equ  Stack_Size, __STACK_SIZE
+#else
+  .equ  Stack_Size, 0xc00
+#endif
+  .global  __StackTop
+  .global  __StackLimit
+__StackLimit:
+  .space  Stack_Size
+  .size  __StackLimit, .-__StackLimit
+__StackTop:
+  .size  __StackTop, .-__StackTop
+
+  .section  .heap
+  .align 3
+#ifdef __HEAP_SIZE
+  .equ  Heap_Size, __HEAP_SIZE
+#else
+  .equ  Heap_Size, 0
+#endif
+  .global  __HeapBase
+  .global  __HeapLimit
+__HeapBase:
+  .if  Heap_Size
+  .space  Heap_Size
+  .endif
+  .size  __HeapBase, .-__HeapBase
+__HeapLimit:
+  .size  __HeapLimit, .-__HeapLimit
 
 /**
  * @brief  This is the code that gets called when the processor first
@@ -71,11 +103,11 @@ defined in linker script */
  * @retval : None
 */
 
-    .section  .text.Reset_Handler
+  .section  .text.Reset_Handler
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:
-  ldr   sp, =_estack      /* set stack pointer */
+  ldr   sp, =__StackTop /* set stack pointer */
 
 /* Copy the data segment initializers from flash to SRAM */
   movs  r1, #0
@@ -123,7 +155,7 @@ LoopFillZerobss:
  * @param  None
  * @retval None
 */
-    .section  .text.Default_Handler,"ax",%progbits
+  .section  .text.Default_Handler,"ax",%progbits
 Default_Handler:
 Infinite_Loop:
   b  Infinite_Loop
@@ -135,13 +167,13 @@ Infinite_Loop:
 * 0x0000.0000.
 *
 *******************************************************************************/
-   .section  .isr_vector,"a",%progbits
+  .section  .isr_vector,"a",%progbits
   .type  g_pfnVectors, %object
   .size  g_pfnVectors, .-g_pfnVectors
 
 
 g_pfnVectors:
-  .word  _estack
+  .word  __StackTop
   .word  Reset_Handler
 
   .word  NMI_Handler

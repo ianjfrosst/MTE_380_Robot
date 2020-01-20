@@ -39,6 +39,10 @@ extern I2C_HandleTypeDef hi2c1;
 void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void I2C_WriteByte(I2C_HandleTypeDef *hi2c, uint16_t devAddr, uint8_t memAddr, uint8_t byte);
+void I2C_WriteBytes(I2C_HandleTypeDef *hi2c, uint16_t devAddr, uint8_t memAddr, uint8_t *bytes, uint16_t len);
+uint8_t I2C_ReadByte(I2C_HandleTypeDef *hi2c, uint16_t devAddr, uint8_t memAddr);
+void I2C_ReadBytes(I2C_HandleTypeDef * hi2c, uint16_t devAddr, uint8_t memAddr, uint8_t * bytes, uint16_t len);
 
 /* USER CODE END Prototypes */
 
