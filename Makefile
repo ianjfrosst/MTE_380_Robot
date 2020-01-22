@@ -47,6 +47,7 @@ Core/Src/main.c \
 Core/Src/mpu9250.c \
 Core/Src/panic.c \
 Core/Src/retarget.c \
+Core/Src/startup.c \
 Core/Src/stm32f7xx_hal_msp.c \
 Core/Src/stm32f7xx_hal_timebase_tim.c \
 Core/Src/stm32f7xx_it.c \

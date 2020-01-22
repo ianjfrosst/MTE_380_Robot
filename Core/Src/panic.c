@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "stm32f7xx.h"
 
+// Registers pushed to stack on exception entry
 enum { r0, r1, r2, r3, r12, lr, pc, psr };
 
 void panic(uint32_t stack[]) {
@@ -23,4 +24,7 @@ void panic(uint32_t stack[]) {
   fprintf(stderr, "  lr   = %08lx\r\n", stack[lr]);
   fprintf(stderr, "  pc   = %08lx\r\n", stack[pc]);
   fprintf(stderr, "  psr  = %08lx\r\n", stack[psr]);
+
+  while (1) {
+  }
 }
