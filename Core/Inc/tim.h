@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * File Name          : USB_OTG.h
+  * File Name          : TIM.h
   * Description        : This file provides code for the configuration
-  *                      of the USB_OTG instances.
+  *                      of the TIM instances.
   ******************************************************************************
   * @attention
   *
@@ -17,8 +17,8 @@
   ******************************************************************************
   */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __usb_otg_H
-#define __usb_otg_H
+#ifndef __tim_H
+#define __tim_H
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -30,13 +30,15 @@
 
 /* USER CODE END Includes */
 
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+extern TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_USB_OTG_FS_PCD_Init(void);
+void MX_TIM1_Init(void);
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -45,7 +47,7 @@ void MX_USB_OTG_FS_PCD_Init(void);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__ usb_otg_H */
+#endif /*__ tim_H */
 
 /**
   * @}

@@ -157,8 +157,11 @@ LoopFillZerobss:
 */
   .section  .text.Default_Handler,"ax",%progbits
 Default_Handler:
-Infinite_Loop:
-  b  Infinite_Loop
+  tst lr, #4
+  ite eq
+  mrseq  r0, msp
+  mrsne  r0, psp
+  b  panic
   .size  Default_Handler, .-Default_Handler
 /******************************************************************************
 *
@@ -170,7 +173,6 @@ Infinite_Loop:
   .section  .isr_vector,"a",%progbits
   .type  g_pfnVectors, %object
   .size  g_pfnVectors, .-g_pfnVectors
-
 
 g_pfnVectors:
   .word  __StackTop

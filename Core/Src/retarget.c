@@ -23,11 +23,11 @@ void* _sbrk(ptrdiff_t incr) {
 int _write(int fd, char* buf, size_t nbyte) {
   if ((buf == NULL) || (nbyte == 0)) return 0;
 
-  if (fd == 0) {
+  if (fd == STDOUT_FILENO) {
     if (HAL_OK != HAL_UART_Transmit(&huart3, (uint8_t*)buf, nbyte, 0xFFFF)) {
       return 0;
     }
-  } else if (fd == 1) {
+  } else if (fd == STDERR_FILENO) {
     for (size_t i = 0; i < nbyte; ++i) {
       ITM_SendChar(buf[i]);
     }

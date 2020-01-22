@@ -67,6 +67,9 @@ extern TIM_HandleTypeDef htim7;
 /******************************************************************************/
 /*           Cortex-M7 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
+
+#if 0
+
 /**
   * @brief This function handles Non maskable interrupt.
   */
@@ -79,9 +82,6 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
-
-
-#if 0
 
 /**
   * @brief This function handles Hard fault interrupt.
@@ -143,8 +143,6 @@ void UsageFault_Handler(void)
   }
 }
 
-#endif
-
 /**
   * @brief This function handles Debug monitor.
   */
@@ -157,6 +155,8 @@ void DebugMon_Handler(void)
 
   /* USER CODE END DebugMonitor_IRQn 1 */
 }
+
+#endif
 
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */

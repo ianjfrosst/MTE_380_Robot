@@ -40,7 +40,6 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-Core/Src/eth.c \
 Core/Src/freertos.c \
 Core/Src/gpio.c \
 Core/Src/i2c.c \
@@ -52,8 +51,8 @@ Core/Src/stm32f7xx_hal_msp.c \
 Core/Src/stm32f7xx_hal_timebase_tim.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/system_stm32f7xx.c \
+Core/Src/tim.c \
 Core/Src/usart.c \
-Core/Src/usb_otg.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_can.c \
