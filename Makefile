@@ -39,7 +39,7 @@ BUILD_DIR = build
 # source
 ######################################
 # C sources
-C_SOURCES =  \
+CORE_SOURCES =  \
 Core/Src/freertos.c \
 Core/Src/gpio.c \
 Core/Src/i2c.c \
@@ -53,7 +53,9 @@ Core/Src/stm32f7xx_hal_timebase_tim.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/system_stm32f7xx.c \
 Core/Src/tim.c \
-Core/Src/usart.c \
+Core/Src/usart.c
+
+HAL_SOURCES = \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_can.c \
@@ -106,7 +108,9 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_spi.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_tim.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usart.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usb.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_utils.c \
+Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_utils.c
+
+FREERTOS_SOURCES = \
 Middlewares/Third_Party/FreeRTOS/Source/croutine.c \
 Middlewares/Third_Party/FreeRTOS/Source/event_groups.c \
 Middlewares/Third_Party/FreeRTOS/Source/list.c \
@@ -117,6 +121,9 @@ Middlewares/Third_Party/FreeRTOS/Source/timers.c \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/port.c
+
+C_SOURCES = $(CORE_SOURCES) $(HAL_SOURCES) $(FREERTOS_SOURCES)
+
 
 # ASM sources
 ASM_SOURCES =  \
@@ -189,8 +196,8 @@ C_INCLUDES =  \
 
 
 # compile gcc flags
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -std=gnu11
-CFLAGS += -Wall -Wextra -Wno-unused-parameter
+WARN = -Wall -Wextra -Wno-unused-parameter
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) $(WARN) -std=gnu11
 CFLAGS += -fno-builtin -fstack-usage -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)

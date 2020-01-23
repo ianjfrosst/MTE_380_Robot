@@ -16,11 +16,11 @@
 #include "stm32f7xx.h"
 #include "usart.h"
 
-void* _sbrk(ptrdiff_t incr) {
-
+__USED void* _sbrk(ptrdiff_t incr) {
+  return NULL;
 }
 
-int _write(int fd, char* buf, size_t nbyte) {
+__USED int _write(int fd, char* buf, size_t nbyte) {
   if ((buf == NULL) || (nbyte == 0)) return 0;
 
   if (fd == STDOUT_FILENO) {
@@ -36,6 +36,6 @@ int _write(int fd, char* buf, size_t nbyte) {
   return nbyte;
 }
 
-int _read(int fd, char* buf, size_t nbyte) {
-
+__USED int _read(int fd, char* buf, size_t nbyte) {
+  return 0;
 }
