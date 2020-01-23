@@ -43,6 +43,8 @@ extern "C" {
  *-----------------------------------------------------------
  */
 
+#include "stm32f7xx.h"
+
 /* Type definitions. */
 #define portCHAR		char
 #define portFLOAT		float
@@ -83,12 +85,12 @@ typedef unsigned long UBaseType_t;
 																				\
 	/* Barriers are normally not required but do ensure the code is completely	\
 	within the specified behaviour for the architecture. */						\
-	__asm volatile( "dsb" ::: "memory" );										\
-	__asm volatile( "isb" );													\
+	__DSB();																	\
+	__ISB();																	\
 }
 
-#define portNVIC_INT_CTRL_REG		( * ( ( volatile uint32_t * ) 0xe000ed04 ) )
-#define portNVIC_PENDSVSET_BIT		( 1UL << 28UL )
+#define portNVIC_INT_CTRL_REG		( SCB->ICSR )
+#define portNVIC_PENDSVSET_BIT		( SCB_ICSR_PENDSVSET_Msk )
 #define portEND_SWITCHING_ISR( xSwitchRequired ) if( xSwitchRequired != pdFALSE ) portYIELD()
 #define portYIELD_FROM_ISR( x ) portEND_SWITCHING_ISR( x )
 /*-----------------------------------------------------------*/
@@ -97,9 +99,9 @@ typedef unsigned long UBaseType_t;
 extern void vPortEnterCritical( void );
 extern void vPortExitCritical( void );
 #define portSET_INTERRUPT_MASK_FROM_ISR()		ulPortRaiseBASEPRI()
-#define portCLEAR_INTERRUPT_MASK_FROM_ISR(x)	vPortSetBASEPRI(x)
+#define portCLEAR_INTERRUPT_MASK_FROM_ISR(x)	__set_BASEPRI(x)
 #define portDISABLE_INTERRUPTS()				vPortRaiseBASEPRI()
-#define portENABLE_INTERRUPTS()					vPortSetBASEPRI(0)
+#define portENABLE_INTERRUPTS()					__set_BASEPRI(0)
 #define portENTER_CRITICAL()					vPortEnterCritical()
 #define portEXIT_CRITICAL()						vPortExitCritical()
 
@@ -131,7 +133,12 @@ not necessary for to use this port.  They are defined so the common demo files
 	{
 	uint8_t ucReturn;
 
-		__asm volatile ( "clz %0, %1" : "=r" ( ucReturn ) : "r" ( ulBitmap ) : "memory" );
+		asm volatile (
+			"clz %0, %1"
+			: "=r" ( ucReturn )
+			: "r" ( ulBitmap )
+			: "memory"
+		);
 		return ucReturn;
 	}
 
@@ -172,7 +179,7 @@ uint32_t ulCurrentInterrupt;
 BaseType_t xReturn;
 
 	/* Obtain the number of the currently executing interrupt. */
-	__asm volatile( "mrs %0, ipsr" : "=r"( ulCurrentInterrupt ) :: "memory" );
+	ulCurrentInterrupt = __get_IPSR();
 
 	if( ulCurrentInterrupt == 0 )
 	{
@@ -190,17 +197,18 @@ BaseType_t xReturn;
 
 portFORCE_INLINE static void vPortRaiseBASEPRI( void )
 {
-uint32_t ulNewBASEPRI;
+	uint32_t ulNewBASEPRI;
 
-	__asm volatile
-	(
-		"	mov %0, %1												\n"	\
-		"	cpsid i													\n" \
-		"	msr basepri, %0											\n" \
-		"	isb														\n" \
-		"	dsb														\n" \
-		"	cpsie i													\n" \
-		:"=r" (ulNewBASEPRI) : "i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY ) : "memory"
+	asm volatile (
+	"	mov %0, %1												\n"
+	"	cpsid i													\n"
+	"	msr basepri, %0											\n"
+	"	isb														\n"
+	"	dsb														\n"
+	"	cpsie i													\n"
+	: "=r" (ulNewBASEPRI)
+	: "i" (configMAX_SYSCALL_INTERRUPT_PRIORITY)
+	: "memory"
 	);
 }
 
@@ -208,32 +216,24 @@ uint32_t ulNewBASEPRI;
 
 portFORCE_INLINE static uint32_t ulPortRaiseBASEPRI( void )
 {
-uint32_t ulOriginalBASEPRI, ulNewBASEPRI;
+	uint32_t ulOriginalBASEPRI, ulNewBASEPRI;
 
-	__asm volatile
-	(
-		"	mrs %0, basepri											\n" \
-		"	mov %1, %2												\n"	\
-		"	cpsid i													\n" \
-		"	msr basepri, %1											\n" \
-		"	isb														\n" \
-		"	dsb														\n" \
-		"	cpsie i													\n" \
-		:"=r" (ulOriginalBASEPRI), "=r" (ulNewBASEPRI) : "i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY ) : "memory"
+	asm volatile (
+	"	mrs %0, basepri											\n"
+	"	mov %1, %2												\n"
+	"	cpsid i													\n"
+	"	msr basepri, %1											\n"
+	"	isb														\n"
+	"	dsb														\n"
+	"	cpsie i													\n"
+	: "=r" (ulOriginalBASEPRI), "=r" (ulNewBASEPRI)
+	: "i" (configMAX_SYSCALL_INTERRUPT_PRIORITY)
+	: "memory"
 	);
 
 	/* This return will not be reached but is necessary to prevent compiler
 	warnings. */
 	return ulOriginalBASEPRI;
-}
-/*-----------------------------------------------------------*/
-
-portFORCE_INLINE static void vPortSetBASEPRI( uint32_t ulNewMaskValue )
-{
-	__asm volatile
-	(
-		"	msr basepri, %0	" :: "r" ( ulNewMaskValue ) : "memory"
-	);
 }
 /*-----------------------------------------------------------*/
 
@@ -243,4 +243,3 @@ portFORCE_INLINE static void vPortSetBASEPRI( uint32_t ulNewMaskValue )
 #endif
 
 #endif /* PORTMACRO_H */
-

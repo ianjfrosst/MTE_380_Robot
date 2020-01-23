@@ -44,6 +44,7 @@
 
 /* USER CODE BEGIN Includes */
 /* Section where include file can be added */
+#include "stm32f7xx.h"
 /* USER CODE END Includes */
 
 /* Ensure definitions are only used by the compiler, and not by the assembler. */
@@ -146,8 +147,8 @@ standard names. */
 
 /* IMPORTANT: This define is commented when used with STM32Cube firmware, when the timebase source is SysTick,
               to prevent overwriting SysTick_Handler defined within STM32Cube HAL */
-
-#define xPortSysTickHandler SysTick_Handler
+// Actually commented because CMSIS_OS V2 defines it
+// #define xPortSysTickHandler SysTick_Handler
 
 /* USER CODE BEGIN 2 */
 /* Definitions needed when configGENERATE_RUN_TIME_STATS is on */
