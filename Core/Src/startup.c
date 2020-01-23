@@ -19,7 +19,7 @@ typedef void (*const ISR_t)(void);
 
 
 __attribute__((used,naked)) void Default_Handler(void) {
-  asm volatile (
+  asm (
   "  tst lr, #4       \n"
   "  ite eq           \n"
   "  mrseq  r0, msp   \n"
@@ -28,10 +28,6 @@ __attribute__((used,naked)) void Default_Handler(void) {
   );
 }
 
-
-void Reset_Handler(void) {
-
-}
 
 DEFINE_DEFAULT_ISR(NMI_Handler);
 DEFINE_DEFAULT_ISR(HardFault_Handler);

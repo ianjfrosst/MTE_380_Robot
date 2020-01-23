@@ -101,9 +101,6 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-  float n = 0;
-  fprintf(stderr, "%f\r\n", 100.f / n);
-
   /* USER CODE END 2 */
   /* Init scheduler */
   osKernelInitialize();
