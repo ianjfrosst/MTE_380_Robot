@@ -83,8 +83,19 @@ SECTIONS
     KEEP (*(.init))
     KEEP (*(.fini))
 
-    . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
+    /* .ctors */
+    *crtbegin.o(.ctors)
+    *crtbegin?.o(.ctors)
+    *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
+    *(SORT(.ctors.*))
+    *(.ctors)
+
+    /* .dtors */
+    *crtbegin.o(.dtors)
+    *crtbegin?.o(.dtors)
+    *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
+    *(SORT(.dtors.*))
+    *(.dtors)
   } >FLASH
 
   /* Constant data goes into FLASH */
@@ -92,13 +103,13 @@ SECTIONS
   {
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
-    . = ALIGN(4);
   } >FLASH
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
     __exidx_start = .;
     *(.ARM.exidx*)
+    *(.gnu.linkonce.armexidx.*)
     __exidx_end = .;
   } >FLASH
 
@@ -123,62 +134,80 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  .copy.table : ALIGN(4)
+  {
+    __copy_table_start = .;
+    LONG(__data_src)
+    LONG(__data_start)
+    LONG(__data_end - __data_start)
+
+    LONG(__ramfunc_src)
+    LONG(__ramfunc_start)
+    LONG(__ramfunc_end - __ramfunc_start)
+    __copy_table_end = .;
+  } >FLASH
+
+  .zero.table : ALIGN(4)
+  {
+    __zero_table_start = .;
+    LONG(__bss_start)
+    LONG(__bss_end - __bss_start)
+    __zero_table_end = .;
+  } >FLASH
+
   /* used by the startup to initialize RAM_FUNCs */
-  _siramfunc = LOADADDR(.RamFunc);
+  __ramfunc_src = LOADADDR(.RamFunc);
 
   /* Load RAM_FUNCs into ITCM RAM */
   .RamFunc : ALIGN(4)
   {
-    _sramfunc = .;
+    __ramfunc_start = .;
     *(.RamFunc)
     *(.RamFunc*)
 
     . = ALIGN(4);
-    _eramfunc = .;
+    __ramfunc_end = .;
   } >ITCM AT> FLASH
 
   /* used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
+  __data_src = LOADADDR(.data);
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data : ALIGN(4)
   {
-    _sdata = .;        /* create a global symbol at data start */
-    *(.data)           /* .data sections */
-    *(.data*)          /* .data* sections */
+    __data_start = .;   /* create a global symbol at data start */
+    *(.data)            /* .data sections */
+    *(.data*)           /* .data* sections */
 
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
+    __data_end = .;     /* define a global symbol at data end */
   } >DTCM AT> FLASH
 
   /* Uninitialized data section */
   .bss : ALIGN(4)
   {
     /* This is used by the startup in order to initialize the .bss secion */
-    _sbss = .;         /* define a global symbol at bss start */
-    __bss_start__ = _sbss;
+    __bss_start = .;      /* define a global symbol at bss start */
     *(.bss)
     *(.bss*)
     *(COMMON)
 
     . = ALIGN(4);
-    _ebss = .;         /* define a global symbol at bss end */
-    __bss_end__ = _ebss;
+    __bss_end = .;        /* define a global symbol at bss end */
   } >DTCM
 
   .heap (COPY) : ALIGN(8)
   {
-    __end__ = .;
+    __end = .;
     PROVIDE(end = .);
-    PROVIDE(_end = .);
-    *(.heap*)
+    KEEP(*(.heap*));
     . = ALIGN(8);
     __HeapLimit = .;
   } >DTCM
 
   .stack (COPY) : ALIGN(8)
   {
-    *(.stack*)
+    KEEP(*(.stack*));
     . = ALIGN(8);
   } >DTCM
 

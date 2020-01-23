@@ -124,10 +124,8 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/port.c
 
 C_SOURCES = $(CORE_SOURCES) $(HAL_SOURCES) $(FREERTOS_SOURCES)
 
-
 # ASM sources
-ASM_SOURCES =  \
-startup_stm32f767xx.s
+ASM_SOURCES =
 
 
 #######################################

@@ -8,26 +8,79 @@
  *
  */
 
-extern int __StackTop;
-void Reset_Handler(void);
+#include <stdint.h>
+#include <string.h>
 
-typedef void (*const ISR_t)(void);
+#include "system_stm32f7xx.h"
+
+#ifndef __STACK_SIZE
+#define __STACK_SIZE 0xc00
+#endif
+
+#ifndef __HEAP_SIZE
+#define __HEAP_SIZE 0
+#endif
 
 #define DEFINE_DEFAULT_ISR(name) \
   __attribute__((interrupt,weak,alias("Default_Handler"))) \
   void name(void);
 
+typedef void (*const ISR_t)(void);
 
-__attribute__((used,naked)) void Default_Handler(void) {
+typedef struct {
+  void* src_addr;
+  void* dest_addr;
+  uint32_t len;
+} copy_table_t;
+
+typedef struct {
+  void* addr;
+  uint32_t len;
+} zero_table_t;
+
+/* Function declarations */
+extern void main(void);
+extern void __libc_init_array(void);
+
+/* Symbols defined in linker script */
+extern void* __StackTop;
+
+extern void* __data_src;
+extern void* __data_start;
+extern void* __data_end;
+
+extern void* __ramfunc_src;
+extern void* __ramfunc_start;
+extern void* __ramfunc_end;
+
+extern void* __bss_start;
+extern void* __bss_end;
+
+__attribute__((naked)) void Default_Handler(void) {
   asm (
-  "  tst lr, #4       \n"
-  "  ite eq           \n"
+  "  tst  lr, #4      \n"
+  "  ite  eq          \n"
   "  mrseq  r0, msp   \n"
   "  mrsne  r0, psp   \n"
   "  b  panic         \n"
   );
 }
 
+__attribute__((noreturn)) void Reset_Handler(void) {
+  memcpy(__data_start, __data_src, __data_end - __data_start);
+  memcpy(__ramfunc_start, __ramfunc_src, __ramfunc_end - __ramfunc_start);
+  memset(__bss_start, 0, __bss_start - __bss_end);
+
+  SystemInit();
+  __libc_init_array();
+  main();
+}
+
+__attribute__((used,section(".stack"))) uint8_t __stack[__STACK_SIZE];
+
+#if __HEAP_SIZE != 0
+__attribute__((used,section(".heap"))) uint8_t __heap[__HEAP_SIZE];
+#endif
 
 DEFINE_DEFAULT_ISR(NMI_Handler);
 DEFINE_DEFAULT_ISR(HardFault_Handler);
