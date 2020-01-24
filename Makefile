@@ -66,7 +66,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dac_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dac.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_dma.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_eth.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_exti.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_flash.c \
@@ -75,8 +74,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_iwdg.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_lptim.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pcd_ex.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pcd.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pwr_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pwr.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc_ex.c \
@@ -107,7 +104,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_rtc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_spi.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_tim.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usart.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usb.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_utils.c
 
 FREERTOS_SOURCES = \
@@ -167,11 +163,9 @@ MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
 # C defines
 C_DEFS =  \
--D__STACK_SIZE=0x1000 \
 -D__HEAP_SIZE=0x1000 \
+-D__STACK_SIZE=0x1000 \
 -DUSE_HAL_DRIVER \
--DUSE_FULL_ASSERT \
--DUSE_FULL_LL_DRIVER \
 -DSTM32F767xx \
 -DARM_MATH_CM7
 
@@ -214,7 +208,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32F767ZITx_FLASH.ld
 
 # libraries
-LIBS = -lc -lm -larm_cortexM7lfdp_math
+LIBS = -lc_nano -lg_nano -lnosys -lm -larm_cortexM7lfdp_math
 LIBDIR = -LDrivers/CMSIS/Lib/GCC
 LDFLAGS = $(MCU) $(OPT) -specs=nosys.specs -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
