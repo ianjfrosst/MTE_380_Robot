@@ -13,12 +13,12 @@
 
 #include "system_stm32f7xx.h"
 
-#ifndef __STACK_SIZE
-#define __STACK_SIZE 0xc00
-#endif
-
 #ifndef __HEAP_SIZE
 #define __HEAP_SIZE 0
+#endif
+
+#ifndef __STACK_SIZE
+#define __STACK_SIZE 0xc00
 #endif
 
 #define DEFINE_DEFAULT_ISR(name) \
@@ -27,34 +27,32 @@
 
 typedef void (*const ISR_t)(void);
 
-typedef struct {
-  void* src_addr;
-  void* dest_addr;
-  uint32_t len;
-} copy_table_t;
-
-typedef struct {
-  void* addr;
-  uint32_t len;
-} zero_table_t;
-
 /* Function declarations */
-extern void main(void);
-extern void __libc_init_array(void);
+extern void _start(void);
 
 /* Symbols defined in linker script */
-extern void* __StackTop;
+extern uint8_t __StackTop;
 
-extern void* __data_src;
-extern void* __data_start;
-extern void* __data_end;
+extern uint8_t __data_start[];
+extern uint8_t __data_loadaddr[];
+extern uint8_t __data_size[];
 
-extern void* __ramfunc_src;
-extern void* __ramfunc_start;
-extern void* __ramfunc_end;
+extern uint8_t __ramfunc_start[];
+extern uint8_t __ramfunc_loadaddr[];
+extern uint8_t __ramfunc_size[];
 
-extern void* __bss_start;
-extern void* __bss_end;
+// Hook functions called by _start (_mainCRTStartup) in newlib crt0.o
+void hardware_init_hook(void) {
+  SystemInit(); // Call CMSIS `SystemInit` to set up clocks, etc.
+}
+
+void software_init_hook(void) {
+  // Copy `.data` section into ram
+  memcpy(__data_start, __data_loadaddr, (size_t)__data_size);
+  if (__ramfunc_size != 0) {
+    memcpy(__ramfunc_start, __ramfunc_loadaddr, (size_t)__ramfunc_size);
+  }
+}
 
 __attribute__((naked)) void Default_Handler(void) {
   asm (
@@ -66,21 +64,11 @@ __attribute__((naked)) void Default_Handler(void) {
   );
 }
 
-__attribute__((noreturn)) void Reset_Handler(void) {
-  memcpy(__data_start, __data_src, __data_end - __data_start);
-  memcpy(__ramfunc_start, __ramfunc_src, __ramfunc_end - __ramfunc_start);
-  memset(__bss_start, 0, __bss_start - __bss_end);
-
-  SystemInit();
-  __libc_init_array();
-  main();
-}
-
-__attribute__((used,section(".stack"))) uint8_t __stack[__STACK_SIZE];
-
 #if __HEAP_SIZE != 0
 __attribute__((used,section(".heap"))) uint8_t __heap[__HEAP_SIZE];
 #endif
+
+__attribute__((used,section(".stack"))) uint8_t __stack_dummy[__STACK_SIZE];
 
 DEFINE_DEFAULT_ISR(NMI_Handler);
 DEFINE_DEFAULT_ISR(HardFault_Handler);
@@ -203,9 +191,9 @@ DEFINE_DEFAULT_ISR(MDIOS_IRQHandler);
 
 
 __attribute__((used,section(".isr_vector")))
-ISR_t g_pfnVectors[] = {
+const ISR_t g_pfnVectors[128] = {
     (ISR_t)(&__StackTop),
-    Reset_Handler,
+    _start,    /* Alias for _mainCRTStartup */
 
     /* Core Interrupts */
     NMI_Handler,

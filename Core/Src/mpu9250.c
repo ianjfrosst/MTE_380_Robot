@@ -161,7 +161,8 @@ static I2C_HandleTypeDef* hi2c = &hi2c1;
 #define PWR_MGMT_1 0x6B  // Device defaults to the SLEEP mode
 #define PWR_MGMT_2 0x6C
 #define DMP_BANK 0x6D  // Activates a specific bank in the DMP
-#define DMP_RW_PNT 0x6E  // Set read/write pointer to a specific start address in specified DMP bank
+#define DMP_RW_PNT  0x6E  // Set read/write pointer to a specific start address in specified DMP
+        // bank
 #define DMP_REG 0x6F  // Register in DMP from which to read or to which to write
 #define DMP_REG_1 0x70
 #define DMP_REG_2 0x71
@@ -280,58 +281,58 @@ void MPU9250_Init(MPU9250_t* mpu) {
 }
 
 void MPU9250_ReadAccel(MPU9250_t* mpu) {
-    uint8_t data[6];
+  uint8_t data[6];
 
-    I2C_ReadBytes(hi2c, MPU9250_ADDR, ACCEL_XOUT_H, data, 6);
+  I2C_ReadBytes(hi2c, MPU9250_ADDR, ACCEL_XOUT_H, data, 6);
 
-    /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
-    mpu->Ax_raw = -BYTES2WORD_BE(data);
-    mpu->Ay_raw = BYTES2WORD_BE(data + 2);
-    mpu->Az_raw = BYTES2WORD_BE(data + 4);
+  /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
+  mpu->Ax_raw = -BYTES2WORD_BE(data);
+  mpu->Ay_raw = BYTES2WORD_BE(data + 2);
+  mpu->Az_raw = BYTES2WORD_BE(data + 4);
 
-    mpu->Ax = mpu->Ax_raw * mpu->A_res;
-    mpu->Ay = mpu->Ay_raw * mpu->A_res;
-    mpu->Az = mpu->Az_raw * mpu->A_res;
+  mpu->Ax = mpu->Ax_raw * mpu->A_res;
+  mpu->Ay = mpu->Ay_raw * mpu->A_res;
+  mpu->Az = mpu->Az_raw * mpu->A_res;
 }
 
 void MPU9250_ReadGyro(MPU9250_t* mpu) {
-    uint8_t data[6];
+  uint8_t data[6];
 
-    I2C_ReadBytes(hi2c, MPU9250_ADDR, GYRO_XOUT_H, data, 6);
+  I2C_ReadBytes(hi2c, MPU9250_ADDR, GYRO_XOUT_H, data, 6);
 
-    /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
-    mpu->Gx_raw = BYTES2WORD_BE(data);
-    mpu->Gy_raw = -BYTES2WORD_BE(data + 2);
-    mpu->Gz_raw = -BYTES2WORD_BE(data + 4);
+  /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
+  mpu->Gx_raw = BYTES2WORD_BE(data);
+  mpu->Gy_raw = -BYTES2WORD_BE(data + 2);
+  mpu->Gz_raw = -BYTES2WORD_BE(data + 4);
 
-    mpu->Gx = mpu->Gx_raw * mpu->G_res;
-    mpu->Gy = mpu->Gy_raw * mpu->G_res;
-    mpu->Gz = mpu->Gz_raw * mpu->G_res;
+  mpu->Gx = mpu->Gx_raw * mpu->G_res;
+  mpu->Gy = mpu->Gy_raw * mpu->G_res;
+  mpu->Gz = mpu->Gz_raw * mpu->G_res;
 }
 
 void MPU9250_ReadMag(MPU9250_t* mpu) {
-    uint8_t data[7];
+  uint8_t data[7];
 
-    if (I2C_ReadByte(hi2c, AK8963_ADDR, AK8963_ST1) & 0x01) {
-        // read all data and status byte
-        I2C_ReadBytes(hi2c, AK8963_ADDR, AK8963_XOUT_L, data, 7);
+  if (I2C_ReadByte(hi2c, AK8963_ADDR, AK8963_ST1) & 0x01) {
+    // read all data and status byte
+    I2C_ReadBytes(hi2c, AK8963_ADDR, AK8963_XOUT_L, data, 7);
 
-        if (!(data[6] & 0x08)) {
-            /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
-            mpu->My_raw = -BYTES2WORD_LE(data);
-            mpu->Mx_raw = BYTES2WORD_LE(data + 2);
-            mpu->Mz_raw = -BYTES2WORD_LE(data + 4);
-            // yes x and y are swapped. yes that's on purpose.
+    if (!(data[6] & 0x08)) {
+      /* DO NOT CHANGE THESE. MPU9250 REFERECE FRAME IS WEIRD */
+      mpu->My_raw = -BYTES2WORD_LE(data);
+      mpu->Mx_raw = BYTES2WORD_LE(data + 2);
+      mpu->Mz_raw = -BYTES2WORD_LE(data + 4);
+      // yes x and y are swapped. yes that's on purpose.
 
-            mpu->Mx = mpu->Mx_raw * mpu->Mx_adj * mpu->M_res;
-            mpu->My = mpu->My_raw * mpu->My_adj * mpu->M_res;
-            mpu->Mz = mpu->Mz_raw * mpu->Mz_adj * mpu->M_res;
-        }
+      mpu->Mx = mpu->Mx_raw * mpu->Mx_adj * mpu->M_res;
+      mpu->My = mpu->My_raw * mpu->My_adj * mpu->M_res;
+      mpu->Mz = mpu->Mz_raw * mpu->Mz_adj * mpu->M_res;
     }
+  }
 }
 
 int16_t MPU9250_ReadTemp() {
-    uint8_t data[2];
-    I2C_ReadBytes(hi2c, MPU9250_ADDR, TEMP_OUT_H, data, 2);
-    return BYTES2WORD_BE(data);
+  uint8_t data[2];
+  I2C_ReadBytes(hi2c, MPU9250_ADDR, TEMP_OUT_H, data, 2);
+  return BYTES2WORD_BE(data);
 }

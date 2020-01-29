@@ -50,7 +50,7 @@
 */
 
 /* Entry Point */
-ENTRY(Reset_Handler)
+ENTRY(_start)
 
 /* Specify the memory areas */
 MEMORY
@@ -58,7 +58,7 @@ MEMORY
   ITCM (rwx)      : ORIGIN = 0x00000000, LENGTH = 16K
   DTCM (rwx)      : ORIGIN = 0x20000000, LENGTH = 128K
   RAM (rwx)       : ORIGIN = 0x20020000, LENGTH = 384K
-  FLASH (rx)      : ORIGIN = 0x00200000, LENGTH = 2048K
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 2048K
 }
 
 /* Define output sections */
@@ -69,7 +69,7 @@ SECTIONS
   {
     KEEP(*(.isr_vector)) /* Startup code */
     . = 0x200; /* End of vector table */
-  } >FLASH
+  } > FLASH
 
   /* The program code and other data goes into FLASH */
   .text : ALIGN(4)
@@ -78,10 +78,10 @@ SECTIONS
     *(.text*)          /* .text* sections (code) */
     *(.glue_7)         /* glue arm to thumb code */
     *(.glue_7t)        /* glue thumb to arm code */
-    *(.eh_frame)
+    KEEP(*(.eh_frame))
 
-    KEEP (*(.init))
-    KEEP (*(.fini))
+    KEEP(*(.init))
+    KEEP(*(.fini))
 
     /* .ctors */
     *crtbegin.o(.ctors)
@@ -96,125 +96,114 @@ SECTIONS
     *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
     *(SORT(.dtors.*))
     *(.dtors)
-  } >FLASH
+  } > FLASH
 
-  /* Constant data goes into FLASH */
-  .rodata : ALIGN(4)
-  {
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
-  } >FLASH
+  /* Constants, strings, etc. go into FLASH */
+  .rodata : { *(.rodata .rodata* .gnu.linkonce.r.*) } > FLASH
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
-  .ARM : {
-    __exidx_start = .;
-    *(.ARM.exidx*)
-    *(.gnu.linkonce.armexidx.*)
-    __exidx_end = .;
-  } >FLASH
+  .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > FLASH
+  __exidx_start = .;
+  .ARM.exidx : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) } > FLASH
+  __exidx_end = .;
+
+  __etext = ALIGN(4);
+  PROVIDE(_etext = __etext);
+  PROVIDE(etext = __etext);
 
   .preinit_array :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } >FLASH
+  } > FLASH
   .init_array :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
-    KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array*))
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } >FLASH
+  } > FLASH
   .fini_array :
   {
     PROVIDE_HIDDEN (__fini_array_start = .);
-    KEEP (*(SORT(.fini_array.*)))
-    KEEP (*(.fini_array*))
+    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+    KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
     PROVIDE_HIDDEN (__fini_array_end = .);
-  } >FLASH
+  } > FLASH
 
-  .copy.table : ALIGN(4)
+  /* Initialized data sections goes into RAM, load LMA copy after code */
+  .data : ALIGN(4)
   {
-    __copy_table_start = .;
-    LONG(__data_src)
-    LONG(__data_start)
-    LONG(__data_end - __data_start)
+    __data_start = .;   /* create a global symbol at data start */
+    __data_start__ = .;
+    *(vtable)
+    *(.data)            /* .data sections */
+    *(.data*)           /* .data* sections */
+    *(.gnu.linkonce.d.*)
 
-    LONG(__ramfunc_src)
-    LONG(__ramfunc_start)
-    LONG(__ramfunc_end - __ramfunc_start)
-    __copy_table_end = .;
-  } >FLASH
+    . = ALIGN(4);
+    __data_end = .;     /* define a global symbol at data end */
+    __data_end__ = .;
+  } > DTCM AT> FLASH
 
-  .zero.table : ALIGN(4)
-  {
-    __zero_table_start = .;
-    LONG(__bss_start)
-    LONG(__bss_end - __bss_start)
-    __zero_table_end = .;
-  } >FLASH
-
-  /* used by the startup to initialize RAM_FUNCs */
-  __ramfunc_src = LOADADDR(.RamFunc);
+  /* used by the startup to initialize data */
+  __data_loadaddr = LOADADDR(.data);
+  __data_size = SIZEOF(.data);
 
   /* Load RAM_FUNCs into ITCM RAM */
   .RamFunc : ALIGN(4)
   {
     __ramfunc_start = .;
     *(.RamFunc)
-    *(.RamFunc*)
 
     . = ALIGN(4);
     __ramfunc_end = .;
-  } >ITCM AT> FLASH
+  } > ITCM AT> FLASH
 
-  /* used by the startup to initialize data */
-  __data_src = LOADADDR(.data);
-
-  /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data : ALIGN(4)
-  {
-    __data_start = .;   /* create a global symbol at data start */
-    *(.data)            /* .data sections */
-    *(.data*)           /* .data* sections */
-
-    . = ALIGN(4);
-    __data_end = .;     /* define a global symbol at data end */
-  } >DTCM AT> FLASH
+  /* used by the startup to initialize RAM_FUNCs */
+  __ramfunc_loadaddr = LOADADDR(.RamFunc);
+  __ramfunc_size = SIZEOF(.RamFunc);
 
   /* Uninitialized data section */
   .bss : ALIGN(4)
   {
     /* This is used by the startup in order to initialize the .bss secion */
     __bss_start = .;      /* define a global symbol at bss start */
+    __bss_start__ = .;
     *(.bss)
     *(.bss*)
     *(COMMON)
 
     . = ALIGN(4);
     __bss_end = .;        /* define a global symbol at bss end */
-  } >DTCM
+    __bss_end__ = .;
+  } > DTCM
+
 
   .heap (COPY) : ALIGN(8)
   {
-    __end = .;
+    __end__ = .;
+    PROVIDE(_end = .);
     PROVIDE(end = .);
     KEEP(*(.heap*));
     . = ALIGN(8);
     __HeapLimit = .;
-  } >DTCM
+  } > DTCM
 
-  .stack (COPY) : ALIGN(8)
+  /* .stack_dummy section doesn't contains any symbols. It is only
+   * used for linker to calculate size of stack sections, and assign
+   * values to stack symbols later */
+  .stack_dummy (COPY) : ALIGN(8)
   {
     KEEP(*(.stack*));
     . = ALIGN(8);
-  } >DTCM
-
+  } > DTCM
 
   /* Highest address of the user mode stack */
   __StackTop = ORIGIN(DTCM) + LENGTH(DTCM);   /* end of DTCM RAM */
-  __StackLimit = __StackTop - SIZEOF(.stack);
+  PROVIDE(__stack = __StackTop);
+
+  __StackLimit = __StackTop - SIZEOF(.stack_dummy);
 
   /* Check if data + heap + stack exceeds RAM limit */
   ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
@@ -225,6 +214,8 @@ SECTIONS
     libc.a ( * )
     libm.a ( * )
     libgcc.a ( * )
+    *(.gnu_debuglink)
+    *(.gnu.lto_*)
   }
 
   .ARM.attributes 0 : { *(.ARM.attributes) }

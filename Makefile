@@ -139,7 +139,7 @@ else
 CC = $(PREFIX)gcc
 AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
-SZ = $(PREFIX)size
+SZ = $(PREFIX)size -A -x
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
@@ -190,10 +190,10 @@ C_INCLUDES =  \
 # compile gcc flags
 WARN = -Wall -Wextra -Wno-unused-parameter
 CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) $(WARN) -std=gnu11
-CFLAGS += -fno-builtin -fstack-usage -fdata-sections -ffunction-sections
+CFLAGS += -fno-builtin -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -gdwarf-2
+CFLAGS += -g -gdwarf -fverbose-asm -fstack-usage -save-temps=obj
 endif
 
 
@@ -208,7 +208,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32F767ZITx_FLASH.ld
 
 # libraries
-LIBS = -lc_nano -lg_nano -lnosys -lm -larm_cortexM7lfdp_math
+LIBS = -lm -larm_cortexM7lfdp_math
 LIBDIR = -LDrivers/CMSIS/Lib/GCC
 LDFLAGS = $(MCU) $(OPT) -specs=nosys.specs -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
