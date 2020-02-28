@@ -118,7 +118,17 @@ Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/port.c
 
-C_SOURCES = $(CORE_SOURCES) $(HAL_SOURCES) $(FREERTOS_SOURCES)
+VLX_SOURCES = \
+Middlewares/ST/VLx/core/src/vl53l0x_api_calibration.c \
+Middlewares/ST/VLx/core/src/vl53l0x_api_core.c \
+Middlewares/ST/VLx/core/src/vl53l0x_api_ranging.c \
+Middlewares/ST/VLx/core/src/vl53l0x_api_strings.c \
+Middlewares/ST/VLx/core/src/vl53l0x_api.c \
+Middlewares/ST/VLx/platform/src/vl53l0x_platform.c \
+Middlewares/ST/VLx/platform/src/vl53l0x_platform_log.c \
+Middlewares/ST/VLx/platform/src/vl53l0x_i2c_platform.c
+
+C_SOURCES = $(CORE_SOURCES) $(HAL_SOURCES) $(FREERTOS_SOURCES) $(VLX_SOURCES)
 
 # ASM sources
 ASM_SOURCES =
@@ -167,7 +177,8 @@ C_DEFS =  \
 -D__STACK_SIZE=0x1000 \
 -DUSE_HAL_DRIVER \
 -DSTM32F767xx \
--DARM_MATH_CM7
+-DARM_MATH_CM7 \
+-DVL53L0X_LOG_ENABLE
 
 
 # AS includes
@@ -184,7 +195,9 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
--IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
+-IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
+-IMiddlewares/ST/VLx/core/inc \
+-IMiddlewares/ST/VLx/platform/inc
 
 
 # compile gcc flags
