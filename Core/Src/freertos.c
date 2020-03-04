@@ -25,7 +25,7 @@
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+/* USER CODE BEGIN Includes */     
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -53,7 +53,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = (4 * configMINIMAL_STACK_SIZE)
+  .stack_size = 256
 };
 
 /* Private function prototypes -----------------------------------------------*/

@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
-
+  
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -65,11 +65,8 @@ extern TIM_HandleTypeDef htim7;
 /* USER CODE END EV */
 
 /******************************************************************************/
-/*           Cortex-M7 Processor Interruption and Exception Handlers          */
+/*           Cortex-M7 Processor Interruption and Exception Handlers          */ 
 /******************************************************************************/
-
-#if 0
-
 /**
   * @brief This function handles Non maskable interrupt.
   */
@@ -155,8 +152,6 @@ void DebugMon_Handler(void)
 
   /* USER CODE END DebugMonitor_IRQn 1 */
 }
-
-#endif
 
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */

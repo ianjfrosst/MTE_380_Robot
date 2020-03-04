@@ -186,17 +186,21 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
     uint32_t measurement;
     uint32_t no_of_measurements = 256;
 
-    uint16_t* pResults =
-        (uint16_t*)malloc(sizeof(uint16_t) * no_of_measurements);
+    // uint16_t* pResults =
+    //     (uint16_t*)malloc(sizeof(uint16_t) * no_of_measurements);
 
-    for (measurement = 0; measurement < no_of_measurements; measurement++) {
+    uint16_t range;
+
+    // for (measurement = 0; measurement < no_of_measurements; measurement++) {
+    do {
       Status = WaitMeasurementDataReady(pMyDevice);
 
       if (Status == VL53L0X_ERROR_NONE) {
         Status = VL53L0X_GetRangingMeasurementData(pMyDevice,
                                                    pRangingMeasurementData);
 
-        *(pResults + measurement) = pRangingMeasurementData->RangeMilliMeter;
+        // *(pResults + measurement) = pRangingMeasurementData->RangeMilliMeter;
+        range = pRangingMeasurementData->RangeMilliMeter;
         printf("In loop measurement %lu: %d\n", measurement,
                pRangingMeasurementData->RangeMilliMeter);
 
@@ -207,15 +211,15 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
       } else {
         break;
       }
-    }
+    } while (range > 200);
 
-    if (Status == VL53L0X_ERROR_NONE) {
-      for (measurement = 0; measurement < no_of_measurements; measurement++) {
-        printf("measurement %lu: %d\n", measurement, *(pResults + measurement));
-      }
-    }
+    // if (Status == VL53L0X_ERROR_NONE) {
+    //   for (measurement = 0; measurement < no_of_measurements; measurement++) {
+    //     printf("measurement %lu: %d\n", measurement, *(pResults + measurement));
+    //   }
+    // }
 
-    free(pResults);
+    // free(pResults);
   }
 
   if (Status == VL53L0X_ERROR_NONE) {
@@ -233,6 +237,20 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
         pMyDevice, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
 
   return Status;
+}
+
+void drive_dir(uint16_t pwm, GPIO_PinState dir1, GPIO_PinState dir2) {
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm);
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, dir1);
+
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, pwm);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_11, dir1);
+
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, dir2);
+
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, pwm);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, dir2);
 }
 /* USER CODE END 0 */
 
@@ -274,54 +292,50 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
-  MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
   VL53L0X_Error Status = VL53L0X_ERROR_NONE;
   VL53L0X_Dev_t MyDevice;
   VL53L0X_Dev_t* pMyDevice = &MyDevice;
-  VL53L0X_DeviceInfo_t DeviceInfo;
 
   pMyDevice->I2cDevAddr      = 0x52;
   pMyDevice->comms_type      =  1;
   pMyDevice->comms_speed_khz =  400;
 
-  uint8_t val = I2C_ReadByte(&hi2c1, 0x52, 0xC0);
-  printf("read: %02x\r\n", val);
-  val = I2C_ReadByte(&hi2c1, 0x52, 0xC1);
-  printf("read: %02x\r\n", val);
-
-  // End of implementation specific
   if (Status == VL53L0X_ERROR_NONE) {
-    printf("Call of VL53L0X_DataInit\n");
     Status = VL53L0X_DataInit(&MyDevice);  // Data initialization
     print_pal_error(Status);
   }
 
-  if (Status == VL53L0X_ERROR_NONE) {
-    Status = VL53L0X_GetDeviceInfo(&MyDevice, &DeviceInfo);
-    print_pal_error(Status);
-  }
-  if (Status == VL53L0X_ERROR_NONE) {
-    printf("VL53L0X_GetDeviceInfo:\n");
-    printf("Device Name : %s\n", DeviceInfo.Name);
-    printf("Device Type : %s\n", DeviceInfo.Type);
-    printf("Device ID : %s\n", DeviceInfo.ProductId);
-    printf("ProductRevisionMajor : %d\n", DeviceInfo.ProductRevisionMajor);
-    printf("ProductRevisionMinor : %d\n", DeviceInfo.ProductRevisionMinor);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
-    if ((DeviceInfo.ProductRevisionMinor != 1) &&
-        (DeviceInfo.ProductRevisionMinor != 1)) {
-      printf("Error expected cut 1.1 but found cut %d.%d\n",
-             DeviceInfo.ProductRevisionMajor, DeviceInfo.ProductRevisionMinor);
-      Status = VL53L0X_ERROR_NOT_SUPPORTED;
-    }
-  }
+  drive_dir(16000, GPIO_PIN_RESET, GPIO_PIN_RESET);
 
   Status = rangingTest(pMyDevice);
 
-  print_pal_error(Status);
+  drive_dir(0, GPIO_PIN_RESET, GPIO_PIN_RESET);
+
+  HAL_Delay(200);
+
+  drive_dir(16000, GPIO_PIN_SET, GPIO_PIN_SET);
+
+  HAL_Delay(1000);
+
+  drive_dir(0, GPIO_PIN_RESET, GPIO_PIN_SET);
+
+  HAL_Delay(200);
+
+  drive_dir(16000, GPIO_PIN_RESET, GPIO_PIN_SET);
+
+  HAL_Delay(1000);
+
+  drive_dir(0, GPIO_PIN_SET, GPIO_PIN_SET);
+
+  while(1);
 
   /* USER CODE END 2 */
   /* Init scheduler */
