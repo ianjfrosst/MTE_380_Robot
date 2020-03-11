@@ -1,43 +1,50 @@
 #include "controller.h"
 #include "stdbool.h"
+#include "math.h"
 
-
-// Assumed FUnctions:
-// Sense(curr_map_ind) -> LCoord 
-// Move(dist_x, dist_y)  
-// s_c(map, dist_x, dist_y) // sensor → coord
-// c_s(x,y) = coord // sensor (will know to check which is > 1000 to apply proper inverse)
-// Error: will assume it is is center of square. Okay? 
-
-SenseDist_t LCoordToSenseDist(LCoord coord){ 
+SenseDist_t* LCoordToSenseDist(LCoord coord){ 
     SenseDist_t dist; 
     // it may overshoot, but since actively sensing/correcting, should be able to stop overshooting 
     dist.F_dist = coord/100*GRID_SQ_MM; 
     dist.L_dist = (coord%100)*GRID_SQ_MM;
-    return dist; 
+    return &dist; 
 }
 
-LCoord SenseDistToLCoord(SenseDist_t front, SenseDist_t left){
+LCoord SenseDistToLCoord(SenseDist_t* dist){
+    LCoord loc; 
+    loc = dist->F_dist/GRID_SQ_MM*100; 
+    loc += dist->L_dist/GRID_SQ_MM; 
+    return loc;
+}
+
+LCoord SenseDistToLCoord(uint64_t front, uint64_t left){
     LCoord loc; 
     loc = front/GRID_SQ_MM*100; 
     loc += left/GRID_SQ_MM; 
     return loc;
 }
 
-bool PosesEqual(Pose_t pose1, Pose_t pose2){
-    return (pose1.map_ind == pose2.map_ind && pose1.coord == pose2.coord);
+bool PosesEqual(Pose_t* pose1, Pose_t* pose2){
+    return (pose1->map_ind == pose2->map_ind && pose1->coord == pose2->coord);
 }
 
-bool SenseDistsEqual(SenseDist_t sd1, SenseDist_t sd2){
-    return (sd1.L_dist == sd2.L_dist && sd1.F_dist == sd2.F_dist);
+bool SenseDistsEqual(SenseDist_t* sd1, SenseDist_t* sd2){
+    return (sd1->L_dist == sd2->L_dist && sd1->F_dist == sd2->F_dist);
 }
 
-LCoord PoseError(Pose_t ref_pose, Pose_t curr_pose, bool ignore_map){
-    if(ref_pose.map_ind != curr_pose.map_ind && !ignore_map){
-        return SENSE_ERROR; 
+PoseError_t* PoseError(Pose_t* ref_pose, Pose_t* curr_pose, bool ignore_map){
+    if(ref_pose->map_ind != curr_pose->map_ind && !ignore_map){
+        return POSE_MAP_ERROR; 
     }
-    LCoord coord_error = ref_pose - curr_pose; 
-    return coord_error; 
+    // Error: will assume it is is center of square. Okay? --> rounds to closest square 
+
+    PoseError_t error; 
+    int16_t coord_error = ref_pose->coord - curr_pose->coord; 
+
+    error.F_err = ref_pose->coord/100 - curr_pose->coord/100; 
+    error.L_err = ref_pose->coord%100 - curr_pose->corrd%100; 
+
+    return &coord_error; 
 }
 
 void SetupMaps(){
@@ -50,6 +57,7 @@ void SetupMaps(){
         } 
     }
 }
+
 void PrintMaps(){
     for (uint8_t k = 0; k < kNumMaps; k++) {	
         for (uint8_t i = 0; i < kGridSize; i++) { // y, traverses rows 
@@ -69,55 +77,104 @@ void ControlLoop(){
     Pose_t curr_pose;
     PlannedPose_t next_pose; 
 
-    // bool turn_cycle = false;
-    LCoord curr_error; 
-    LCoord turn_error; 
+
+    IMUAngle IMU_ref = ReadIMU(); //***to get current offset being started with  
     bool not_turned = false; 
+    Angle angle_dev = 0; 
+    PoseError_t error; 
+    Angle turn_angle = 0;  
+
+    next_pose = TRAVEL_PATH[next_pose_ind]; 
+    curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
+    curr_pose = {curr_map, curr_loc};
+
+    if(!PosesEqual(&next_pose.pose, &curr_pose)){
+        //***FLASH LIGHTS?? - STARTING IN WRONG SPOT 
+        return;
+    }
 
     while(next_pose_ind < kNumSteps){
-        // if(!turn_cycle)
         next_pose = TRAVEL_PATH[next_pose_ind];
-        curr_loc = Sense(curr_map); 
+        curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
         curr_pose = {curr_map, curr_loc};
 
-        if(PosesEqual(next_pose.after_turn, NULL_POSE){
-            if(PosesEqual(next_pose, curr_pose)){
+        if(PosesEqual(&next_pose.after_turn, &NULL_POSE)){
+
+            error = *(PoseError(&next_pose.pose, &curr_pose, false)); 
+
+            if(error.F_err == POSE_MAP_ERROR.F_err && error.L_err == POSE_MAP_ERROR.L_err)){
+                ; // Do something? When would this happen? 
+            }
+
+            if(PosesEqual(&next_pose.pose, &curr_pose)){
                 next_pose_ind += 1; 
             }else{
-                LCoord error = PoseError(next_pose.pose, curr_pose, false); 
-                SenseDist_t move = LCoordToSenseDist(error); 
-                move.L_dist*=(-1); 
-                // forward_p = 
-                // MotorL = (error/)
-                // move robot based on that error. 
-                // call to loc's Move function
+                if(error.L_err != 0){
+                    turn_angle = arctan(1/error.L_err); 
+                    turn_angle = turn_angle < 0 ? -90 - turn_angle : 90 - turn_angle; 
+                    TURN(turn_angle); // ***assuming angle > 0 = Turn CW, <0 = CCW 
+                    //***Move forward incr for a set time approx = 0.5 or 1 sq 
+                }
+
+                angle_dev = (IMU_ref - ReadIMU()) % (360*ANGLE_TO_IMU_ANGLE); //***call IMU reading 
+                if(abs(angle_dev) > 1){ 
+                    TURN(-1*angle_dev); // ***
+                    curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
+                    curr_pose = {curr_map, curr_loc};
+                }
+                // it will move forward as required, and angle dev would show the 
+                // turned value on the next accurate reading and turn it back to straight 
+                // BUT angled during correction = ToF sensors are WRONG 
+
+                if(error.F_err > 0){
+                   ; //***MOTORS MOVE FORWARD  
+                }else{ // overshot (ie. err <0) or correct row, L<>R off which is why PoseEqual failed
+                    next_pose_ind+=1; 
+                } 
+
             }
         }else{ // need to turn. Either at or not at turn row yet 
-            // turn_cycle = true; 
-            int16_t row_diff = (next_pose.pose.coord - curr_pose.pose.coord); 
-            if(row_diff > 100){
-                // Motor forward
-                // call to loc's Move function
-            }else{  // either overshot (row_diff < 0) or in perfect place                 
-                curr_error = PoseError(next_pose.pose, curr_pose, false);
+            
+            angle_dev = (IMU_ref - ReadIMU()) % (360*ANGLE_TO_IMU_ANGLE); //***call IMU reading 
+            
+            // Correct any prior offset ex. if correction from previous step and update curr_loc
+            if(abs(angle_dev) > 1){ 
+                TURN(-1*angle_dev); // ***
+                curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
+                curr_pose = {curr_map, curr_loc};
+            }
+            error = *(PoseError(&next_pose.pose, &curr_pose, false));
 
-                turn_curr_pose = {next_pose.after_turn.map_ind, curr_loc};
-                turn_error = PoseError(next_pose.after_turn, turn_curr_pose);
+            if(error.F_err > 1){
+                ;// ***Motor forward
+            }else{  // either overshot (error.F_err < 0) or in perfect place 
 
-                not_turned = turn_error > curr_error; 
-                if(!turned){ 
-                    // turn in small incr on the spot
-                }else{
-                    curr_map = next_pose.after_turn.map_ind; 
-                    // turn_cycle = false; 
-                    next_pose_ind += 1;
-                }
-                // while(!not_turned){
-                //     // turn in small increments in spot 
-                //     curr_error = PoseError(next_pose.pose, curr_pose, false);
-                //     turn_error = PoseError(next_pose.after_turn, curr_pose, true);
-                //     not_turned = turn_error < curr_error; 
-                // }
+                // OPTION 1: Turn 90, let above code correct from there 
+                TURN(90); ///*** CW Turns only 
+                curr_map = next_pose.after_turn.map_ind; 
+                IMU_ref += 90*ANGLE_TO_IMU_ANGLE; //RESET IMU -- SHOULD NOT TRY TO UNTURN 90 
+                next_pose_ind += 1;
+
+                // OPTION 2: Turn until next map with next pose more similar than current                
+                #if 0
+                    turn_curr_pose = {next_pose.after_turn.map_ind, curr_loc};
+                    turn_error = PoseError(next_pose.after_turn, turn_curr_pose);
+
+                    not_turned = turn_error > curr_error; 
+                    if(!turned){ 
+                        // turn in small incr on the spot
+                    }else{
+                        curr_map = next_pose.after_turn.map_ind; 
+                        // turn_cycle = false; 
+                        next_pose_ind += 1;
+                    }
+                    // while(!not_turned){
+                    //     // turn in small increments in spot 
+                    //     curr_error = PoseError(next_pose.pose, curr_pose, false);
+                    //     turn_error = PoseError(next_pose.after_turn, curr_pose, true);
+                    //     not_turned = turn_error < curr_error; 
+                    // }
+                #endif 
                 
             }
         }
@@ -138,7 +195,6 @@ Movement:
 
 int main(){
 
-    SetupMaps();
 
     LCoord front; 
     LCoord left; 
@@ -149,6 +205,7 @@ int main(){
         printf("Loc: %d \n", SenseDistToLCoord(front, left)); 
     }
 
+    // SetupMaps();
     // PrintMaps(); 
 
     // Sense function setup 
