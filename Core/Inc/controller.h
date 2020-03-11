@@ -1,25 +1,35 @@
 
 
 #define NULL_LCOORD 9999 // max Lcoord = 1717
-#define NULL_MAP 200 // max map ind = 3 
-#define NULL_SENSOR_DIST -999 // max map ind = 3 
-#define NULL_POSE_ERR -99
+#define NULL_MAP 200 
+//#define NULL_SENSOR_DIST (-999) 
+#define NULL_POSE_ERR (-99)
 
+#define GRID_SIZE 18 
+#define NUM_MAPS 4
+#define NUM_STEPS 100 
+
+#include <stdbool.h> 
 #include <stdint.h> 
+#include "mpu9250.h"
+#include "math.h" 
 
 uint8_t GRID_SQ_MM  = 102; // 304.8/3 = 101.6 
-uint16_t ANGLE_TO_IMU_ANGLE = ; // Factor to convert real angle to IMU angle 
+uint16_t DEG_TO_RAD = M_PI/180; // Factor to convert real angle to IMU angle 
 
 typedef uint16_t LCoord; 
 typedef uint16_t Angle;
 typedef uint16_t IMUAngle;
 
+/*
 typedef struct {
     uint16_t L_dist; // left sensor
     uint16_t F_dist; // front sensor
 }SenseDist_t; 
 
+
 SenseDist_t SENSE_ERROR = {NULL_SENSOR_DIST, NULL_SENSOR_DIST};
+*/
 
 typedef struct{
     uint8_t map_ind; 
@@ -36,15 +46,13 @@ typedef struct{
     int8_t L_err; 
 }PoseError_t; 
 
+Pose_t NULL_POSE = {NULL_MAP, NULL_LCOORD}; 
+
 PoseError_t POSE_MAP_ERROR = {NULL_POSE_ERR, NULL_POSE_ERR}; 
 
-const uint8_t kGridSize = 18; 
-const uint8_t kNumMaps = 4; 
-LCoord MAP[kNumMaps][kGridSize][kGridSize]; 
+LCoord MAP[NUM_MAPS][GRID_SIZE][GRID_SIZE]; 
 
-const uint8_t kNumSteps = 100; 
-PlannedPose_t TRAVEL_PATH[kNumSteps] = {
-// {
+PlannedPose_t TRAVEL_PATH[] = { // NUM_STEPS 
 //     {
 //         .pose = {
 //             .map_ind = 0,
@@ -66,7 +74,7 @@ PlannedPose_t TRAVEL_PATH[kNumSteps] = {
     {{0, 301}, {NULL_MAP, NULL_LCOORD}}, 
     {{0, 201}, {NULL_MAP, NULL_LCOORD}}, 
     {{0, 101}, {1, 1601}}, 
-    {{1, 1501}, {NULL_MAP, NULL_LCOORD}, 
+    {{1, 1501}, {NULL_MAP, NULL_LCOORD}}, 
     {{1, 1401}, {NULL_MAP, NULL_LCOORD}}, 
     {{1, 1301}, {NULL_MAP, NULL_LCOORD}}, 
     {{1, 1201}, {NULL_MAP, NULL_LCOORD}}, 
@@ -96,7 +104,7 @@ PlannedPose_t TRAVEL_PATH[kNumSteps] = {
     {{2, 301}, {NULL_MAP, NULL_LCOORD}}, 
     {{2, 201}, {NULL_MAP, NULL_LCOORD}},
     {{2, 101}, {3, 1601}},
-    {{3, 1501}, {NULL_MAP, NULL_LCOORD}, 
+    {{3, 1501}, {NULL_MAP, NULL_LCOORD}}, 
     {{3, 1401}, {NULL_MAP, NULL_LCOORD}}, 
     {{3, 1301}, {NULL_MAP, NULL_LCOORD}}, 
     {{3, 1201}, {NULL_MAP, NULL_LCOORD}}, 
@@ -156,15 +164,16 @@ PlannedPose_t TRAVEL_PATH[kNumSteps] = {
     {{2, 907}, {NULL_MAP, NULL_LCOORD}}, 
     {{2, 807}, {NULL_MAP, NULL_LCOORD}}, 
     {{2, 707}, {NULL_MAP, NULL_LCOORD}}, 
-}
+};
 
-SenseDist_t LCoordToSenseDist(LCoord coord);
-LCoord SenseDistToLCoord(SenseDist_t* dist);
-LCoord SenseDistToLCoord(uint64_t front, uint64_t left);
-SenseDist_t* LCoordToSenseDist(LCoord coord); 
+// LCoord SenseDistToLCoord(SenseDist_t* dist);
+// SenseDist_t* LCoordToSenseDist(LCoord coord); 
+// bool SenseDistsEqual(SenseDist_t* sd1, SenseDist_t* sd2); 
+
+LCoord ToFDistToLCoord(uint64_t front, uint64_t left);
 
 bool PosesEqual(Pose_t* pose1, Pose_t* pose2); 
-bool SenseDistsEqual(SenseDist_t* sd1, SenseDist_t* sd2); 
+
 PoseError_t* PoseError(Pose_t* ref_pose, Pose_t* curr_pose, bool ignore_map);
 
 void SetupMaps(); 
