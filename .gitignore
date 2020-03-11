@@ -3,6 +3,7 @@
 build/*
 *.o
 *.d
+*.i
 *.lst
 *.su
 *.elf

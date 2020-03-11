@@ -256,53 +256,59 @@ VL53L0X_Dev_t front_range = {
 #endif
 };
 
-#define SIDE_XSHUT_PIN GPIO_PIN_0
-#define SIDE_XSHUT_PORT GPIOG
-
 void range_init(void) {
   VL53L0X_Error Status = VL53L0X_ERROR_NONE;
-  GPIO_InitTypeDef init = {
-      .Pin = SIDE_XSHUT_PIN,
-      .Mode = GPIO_MODE_OUTPUT_OD,
-      .Pull = GPIO_NOPULL,
-  };
-
-  HAL_GPIO_Init(SIDE_XSHUT_PORT, &init);
 
   // Shutdown the side sensor
-  HAL_GPIO_WritePin(SIDE_XSHUT_PORT, SIDE_XSHUT_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SIDE_XSHUT_GPIO_Port, SIDE_XSHUT_Pin, GPIO_PIN_RESET);
 
 #ifdef DO_SETUP
-  Status = VL53L0X_SetDeviceAddress(&front_range, VL53L0X_NEW_ADDRESS);
+  // This will fail if the address has already been changed, but that's ok
+  VL53L0X_SetDeviceAddress(&front_range, VL53L0X_NEW_ADDRESS);
   front_range.I2cDevAddr = VL53L0X_NEW_ADDRESS;
 #endif
 
   // Reenable side sensor
-  HAL_GPIO_WritePin(SIDE_XSHUT_PORT, SIDE_XSHUT_PIN, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(SIDE_XSHUT_GPIO_Port, SIDE_XSHUT_Pin, GPIO_PIN_SET);
 
-  printf("front DataInit\r\n");
   Status = VL53L0X_DataInit(&front_range);
   if (Status != VL53L0X_ERROR_NONE) {
+    printf("front DataInit\r\n");
     print_pal_error(Status);
   }
 
-  printf("front StaticInit\r\n");
   Status = VL53L0X_StaticInit(&front_range);
   if (Status != VL53L0X_ERROR_NONE) {
+    printf("front StaticInit\r\n");
     print_pal_error(Status);
   }
 
-  printf("side DataInit\r\n");
   Status = VL53L0X_DataInit(&side_range);
   if (Status != VL53L0X_ERROR_NONE) {
+    printf("side DataInit\r\n");
     print_pal_error(Status);
   }
 
-  printf("side StaticInit\r\n");
   Status = VL53L0X_StaticInit(&side_range);
   if (Status != VL53L0X_ERROR_NONE) {
+    printf("side StaticInit\r\n");
     print_pal_error(Status);
   }
+}
+
+void range_calibrate(void) {
+  uint8_t VhvSettings = 0;
+  uint8_t PhaseCal = 0;
+  uint32_t refSpadCount = 0;
+  uint8_t isApertureSpads = 0;
+
+  VL53L0X_PerformRefCalibration(&front_range, &VhvSettings, &PhaseCal);
+  VL53L0X_PerformRefSpadManagement(&front_range, &refSpadCount,
+                                   &isApertureSpads);
+
+  VL53L0X_PerformRefCalibration(&side_range, &VhvSettings, &PhaseCal);
+  VL53L0X_PerformRefSpadManagement(&side_range, &refSpadCount,
+                                   &isApertureSpads);
 }
 /* USER CODE END 0 */
 
@@ -347,42 +353,12 @@ int main(void) {
   printf("\r\n\r\nStartup!\r\n");
 
 #if 1
-  VL53L0X_Error Status = VL53L0X_ERROR_NONE;
-
   range_init();
+  range_calibrate();
 
-  VL53L0X_DeviceInfo_t info = {0};
-
-  printf("front read\r\n");
-  Status = VL53L0X_GetDeviceInfo(&front_range, &info);
-  if (Status != VL53L0X_ERROR_NONE) {
-    print_pal_error(Status);
-  } else {
-    printf("front: %s\r\n", info.Name);
-  }
-
-  printf("side read\r\n");
-  Status = VL53L0X_GetDeviceInfo(&side_range, &info);
-  if (Status != VL53L0X_ERROR_NONE) {
-    print_pal_error(Status);
-  } else {
-    printf("side: %s\r\n", info.Name);
-  }
-
-  uint8_t VhvSettings = 0;
-  uint8_t PhaseCal = 0;
-  uint32_t refSpadCount = 0;
-  uint8_t isApertureSpads = 0;
-
-  VL53L0X_PerformRefCalibration(&front_range, &VhvSettings, &PhaseCal);
-  VL53L0X_PerformRefSpadManagement(&front_range, &refSpadCount,
-                                   &isApertureSpads);
   VL53L0X_SetDeviceMode(&front_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
   VL53L0X_StartMeasurement(&front_range);
 
-  VL53L0X_PerformRefCalibration(&side_range, &VhvSettings, &PhaseCal);
-  VL53L0X_PerformRefSpadManagement(&side_range, &refSpadCount,
-                                   &isApertureSpads);
   VL53L0X_SetDeviceMode(&side_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
   VL53L0X_StartMeasurement(&side_range);
 
