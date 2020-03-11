@@ -126,7 +126,6 @@ Middlewares/ST/VLx/core/src/vl53l0x_api_strings.c \
 Middlewares/ST/VLx/core/src/vl53l0x_api.c \
 Middlewares/ST/VLx/platform/src/vl53l0x_platform.c \
 Middlewares/ST/VLx/platform/src/vl53l0x_platform_log.c \
-Middlewares/ST/VLx/platform/src/vl53l0x_i2c_platform.c
 
 C_SOURCES = $(CORE_SOURCES) $(HAL_SOURCES) $(FREERTOS_SOURCES) $(VLX_SOURCES)
 
