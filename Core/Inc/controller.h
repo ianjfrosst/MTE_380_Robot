@@ -15,8 +15,8 @@ typedef uint16_t Angle;
 typedef uint16_t IMUAngle;
 
 typedef struct {
-    int16_t L_dist; // left sensor
-    int16_t F_dist; // front sensor
+    uint16_t L_dist; // left sensor
+    uint16_t F_dist; // front sensor
 }SenseDist_t; 
 
 SenseDist_t SENSE_ERROR = {NULL_SENSOR_DIST, NULL_SENSOR_DIST};

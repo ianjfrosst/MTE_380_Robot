@@ -71,15 +71,14 @@ void PrintMaps(){
 }
 
 void ControlLoop(){
-    uint8_t next_pose_ind = 1; 
+    uint8_t next_pose_ind = 0; 
     uint8_t curr_map = 0; 
     LCoord curr_loc;
     Pose_t curr_pose;
     PlannedPose_t next_pose; 
 
-
     IMUAngle IMU_ref = ReadIMU(); //***to get current offset being started with  
-    bool not_turned = false; 
+    //bool not_turned = false; 
     Angle angle_dev = 0; 
     PoseError_t error; 
     Angle turn_angle = 0;  
@@ -91,12 +90,16 @@ void ControlLoop(){
     if(!PosesEqual(&next_pose.pose, &curr_pose)){
         //***FLASH LIGHTS?? - STARTING IN WRONG SPOT 
         return;
+    }else{
+        next_pose_ind+=1; 
     }
 
     while(next_pose_ind < kNumSteps){
         next_pose = TRAVEL_PATH[next_pose_ind];
         curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
         curr_pose = {curr_map, curr_loc};
+
+        //***** IF PREV POSE = CURR POSE FOR MORE THAN X READS --> WERE STUCK! MORE POWER! MOVE! 
 
         if(PosesEqual(&next_pose.after_turn, &NULL_POSE)){
 
@@ -109,6 +112,9 @@ void ControlLoop(){
             if(PosesEqual(&next_pose.pose, &curr_pose)){
                 next_pose_ind += 1; 
             }else{
+                
+                //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL
+
                 if(error.L_err != 0){
                     turn_angle = arctan(1/error.L_err); 
                     turn_angle = turn_angle < 0 ? -90 - turn_angle : 90 - turn_angle; 
@@ -121,10 +127,12 @@ void ControlLoop(){
                     TURN(-1*angle_dev); // ***
                     curr_loc = SenseDistToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
                     curr_pose = {curr_map, curr_loc};
+                    //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL
                 }
                 // it will move forward as required, and angle dev would show the 
                 // turned value on the next accurate reading and turn it back to straight 
                 // BUT angled during correction = ToF sensors are WRONG 
+
 
                 if(error.F_err > 0){
                    ; //***MOTORS MOVE FORWARD  
@@ -151,7 +159,14 @@ void ControlLoop(){
 
                 // OPTION 1: Turn 90, let above code correct from there 
                 TURN(90); ///*** CW Turns only 
-                curr_map = next_pose.after_turn.map_ind; 
+                angle_dev = (IMU_ref - ReadIMU()) % (360*ANGLE_TO_IMU_ANGLE); //***call IMU reading  
+                
+                while(angle_dev < 85){
+                    TURN(10);
+                    angle_dev = (IMU_ref - ReadIMU()) % (360*ANGLE_TO_IMU_ANGLE); //***call IMU reading  
+                }
+
+                curr_map = next_pose.after_turn.map_ind ; 
                 IMU_ref += 90*ANGLE_TO_IMU_ANGLE; //RESET IMU -- SHOULD NOT TRY TO UNTURN 90 
                 next_pose_ind += 1;
 
