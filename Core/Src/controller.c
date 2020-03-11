@@ -85,10 +85,14 @@ void ControlLoop(){
     PoseError_t error; 
     Angle turn_angle = 0;  
 
+    uint8_t same_pose_seen = 0; 
+    Pose_t prev_pose; 
+
     next_pose = TRAVEL_PATH[next_pose_ind]; 
     curr_loc = ToFToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
     curr_pose.map_ind = curr_map;
     curr_pose.coord = curr_loc; 
+    prev_pose = curr_pose; 
 
     if(!PosesEqual(&next_pose.pose, &curr_pose)){
         //***FLASH LIGHTS?? - STARTING IN WRONG SPOT 
@@ -103,7 +107,14 @@ void ControlLoop(){
         curr_pose.map_ind = curr_map;
         curr_pose.coord = curr_loc; 
 
-        //***** IF PREV POSE = CURR POSE FOR MORE THAN X READS --> WERE STUCK! MORE POWER! MOVE! 
+        if(PosesEqual(&prev_pose, &curr_pose)){
+            same_pose_seen+=1; 
+            if(same_pose_seen > 5){
+                ; //WE'RE STUCK! MORE POWER! MOVE! for 1-2 sec 
+            }
+        }else{
+            same_pose_seen = 0; 
+        }
 
         if(PosesEqual(&next_pose.after_turn, &NULL_POSE)){
 
@@ -117,7 +128,14 @@ void ControlLoop(){
                 next_pose_ind += 1; 
             }else{
                 
-                //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL
+                //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL - BAADDDD. WE ARE COMPLETELY LOST. 
+                if(ReadToF(front) < 1*GRID_SQ_MM){
+                    TURN(90); ///*** CW Turns only 
+                    angle_dev = (IMU_ref - ReadIMU()) % (360*DEG_TO_RAD); //***call IMU reading  
+                    curr_map = next_pose.after_turn.map_ind ; 
+                    IMU_ref += 90*DEG_TO_RAD; //RESET IMU -- SHOULD NOT TRY TO UNTURN 90 
+                    next_pose_ind += 1;
+                }
 
                 if(error.L_err != 0){
                     turn_angle = arctan(1/error.L_err); 
@@ -132,12 +150,20 @@ void ControlLoop(){
                     curr_loc = ToFToLCoord(ReadToF(front), ReadToF(left)); //***STAND IN FOR TOF FUNCTIONS ;
                     curr_pose.map_ind = curr_map;
                     curr_pose.coord = curr_loc; 
-                    //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL
+                    
+                    //***** ADD CHECK THAT WE ARE >1 SQ FROM WALL - BAADDDD. WE ARE COMPLETELY LOST. 
+                    if(ReadToF(front) < 1*GRID_SQ_MM){
+                        TURN(90); ///*** CW Turns only 
+                        angle_dev = (IMU_ref - ReadIMU()) % (360*DEG_TO_RAD); //***call IMU reading  
+                        curr_map = next_pose.after_turn.map_ind ; 
+                        IMU_ref += 90*DEG_TO_RAD; //RESET IMU -- SHOULD NOT TRY TO UNTURN 90 
+                        next_pose_ind += 1;
+                    }
+
                 }
                 // it will move forward as required, and angle dev would show the 
                 // turned value on the next accurate reading and turn it back to straight 
                 // BUT angled during correction = ToF sensors are WRONG 
-
 
                 if(error.F_err > 0){
                    ; //***MOTORS MOVE FORWARD  
