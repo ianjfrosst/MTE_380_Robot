@@ -1,35 +1,30 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+ * @file main.c
+ * @author Ian Frosst
+ * @brief Main program body
+ * @version 0.1
+ * @date 2020-03-06
+ *
+ * @copyright Copyright (c) 2020
+ *
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "gpio.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
-#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "vl53l0x_api.h"
 #include "vl53l0x_platform.h"
 /* USER CODE END Includes */
@@ -64,25 +59,26 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void print_pal_error(VL53L0X_Error Status){
-    char buf[VL53L0X_MAX_STRING_LENGTH];
-    VL53L0X_GetPalErrorString(Status, buf);
-    printf("API Status: %i : %s\n", Status, buf);
+void print_pal_error(VL53L0X_Error Status) {
+  char buf[VL53L0X_MAX_STRING_LENGTH];
+  VL53L0X_GetPalErrorString(Status, buf);
+  printf("API Status: %i : %s\n", Status, buf);
 }
 
-void print_range_status(VL53L0X_RangingMeasurementData_t* pRangingMeasurementData){
-    char buf[VL53L0X_MAX_STRING_LENGTH];
-    uint8_t RangeStatus;
+void print_range_status(
+    VL53L0X_RangingMeasurementData_t* pRangingMeasurementData) {
+  char buf[VL53L0X_MAX_STRING_LENGTH];
+  uint8_t RangeStatus;
 
-    /*
-     * New Range Status: data is valid when pRangingMeasurementData->RangeStatus = 0
-     */
+  /*
+   * New Range Status: data is valid when pRangingMeasurementData->RangeStatus =
+   * 0
+   */
 
-    RangeStatus = pRangingMeasurementData->RangeStatus;
+  RangeStatus = pRangingMeasurementData->RangeStatus;
 
-    VL53L0X_GetRangeStatusString(RangeStatus, buf);
-    printf("Range Status: %i : %s\n", RangeStatus, buf);
-
+  VL53L0X_GetRangeStatusString(RangeStatus, buf);
+  printf("Range Status: %i : %s\n", RangeStatus, buf);
 }
 
 VL53L0X_Error WaitMeasurementDataReady(VL53L0X_DEV Dev) {
@@ -147,6 +143,10 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
   uint8_t VhvSettings;
   uint8_t PhaseCal;
 
+  printf("Call of VL53L0X_DataInit\n");
+  Status = VL53L0X_DataInit(pMyDevice);  // Data initialization
+  print_pal_error(Status);
+
   if (Status == VL53L0X_ERROR_NONE) {
     printf("Call of VL53L0X_StaticInit\n");
     Status = VL53L0X_StaticInit(pMyDevice);  // Device Initialization
@@ -183,15 +183,8 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
   }
 
   if (Status == VL53L0X_ERROR_NONE) {
-    uint32_t measurement;
-    uint32_t no_of_measurements = 256;
-
-    // uint16_t* pResults =
-    //     (uint16_t*)malloc(sizeof(uint16_t) * no_of_measurements);
-
     uint16_t range;
 
-    // for (measurement = 0; measurement < no_of_measurements; measurement++) {
     do {
       Status = WaitMeasurementDataReady(pMyDevice);
 
@@ -199,10 +192,8 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
         Status = VL53L0X_GetRangingMeasurementData(pMyDevice,
                                                    pRangingMeasurementData);
 
-        // *(pResults + measurement) = pRangingMeasurementData->RangeMilliMeter;
         range = pRangingMeasurementData->RangeMilliMeter;
-        printf("In loop measurement %lu: %d\n", measurement,
-               pRangingMeasurementData->RangeMilliMeter);
+        printf("data: %d\r\n", range);
 
         // Clear the interrupt
         VL53L0X_ClearInterruptMask(
@@ -211,15 +202,7 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
       } else {
         break;
       }
-    } while (range > 200);
-
-    // if (Status == VL53L0X_ERROR_NONE) {
-    //   for (measurement = 0; measurement < no_of_measurements; measurement++) {
-    //     printf("measurement %lu: %d\n", measurement, *(pResults + measurement));
-    //   }
-    // }
-
-    // free(pResults);
+    } while (true);
   }
 
   if (Status == VL53L0X_ERROR_NONE) {
@@ -239,31 +222,98 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
   return Status;
 }
 
-void drive_dir(uint16_t pwm, GPIO_PinState dir1, GPIO_PinState dir2) {
-  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm);
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, dir1);
-
-  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, pwm);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_11, dir1);
-
-  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, dir2);
-
+void drive_dir(uint16_t pwm, bool left, bool right) {
+  // Front left
   __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, pwm);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, dir2);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, !left);
+
+  // Back left
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm);
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, !left);
+
+  // Front right
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, right);
+
+  // Back right
+  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, pwm);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_11, right);
+}
+
+#define DO_SETUP
+#define VL53L0X_ADDRESS (0x52)
+#define VL53L0X_NEW_ADDRESS (0x54)
+
+VL53L0X_Dev_t side_range = {
+    .I2cDevAddr = VL53L0X_ADDRESS,
+};
+
+VL53L0X_Dev_t front_range = {
+#ifdef DO_SETUP
+    .I2cDevAddr = VL53L0X_ADDRESS,
+#else
+    .I2cDevAddr = VL53L0X_NEW_ADDRESS,
+#endif
+};
+
+#define SIDE_XSHUT_PIN GPIO_PIN_0
+#define SIDE_XSHUT_PORT GPIOG
+
+void range_init(void) {
+  VL53L0X_Error Status = VL53L0X_ERROR_NONE;
+  GPIO_InitTypeDef init = {
+      .Pin = SIDE_XSHUT_PIN,
+      .Mode = GPIO_MODE_OUTPUT_OD,
+      .Pull = GPIO_NOPULL,
+  };
+
+  HAL_GPIO_Init(SIDE_XSHUT_PORT, &init);
+
+  // Shutdown the side sensor
+  HAL_GPIO_WritePin(SIDE_XSHUT_PORT, SIDE_XSHUT_PIN, GPIO_PIN_RESET);
+
+#ifdef DO_SETUP
+  Status = VL53L0X_SetDeviceAddress(&front_range, VL53L0X_NEW_ADDRESS);
+  front_range.I2cDevAddr = VL53L0X_NEW_ADDRESS;
+#endif
+
+  // Reenable side sensor
+  HAL_GPIO_WritePin(SIDE_XSHUT_PORT, SIDE_XSHUT_PIN, GPIO_PIN_SET);
+
+  printf("front DataInit\r\n");
+  Status = VL53L0X_DataInit(&front_range);
+  if (Status != VL53L0X_ERROR_NONE) {
+    print_pal_error(Status);
+  }
+
+  printf("front StaticInit\r\n");
+  Status = VL53L0X_StaticInit(&front_range);
+  if (Status != VL53L0X_ERROR_NONE) {
+    print_pal_error(Status);
+  }
+
+  printf("side DataInit\r\n");
+  Status = VL53L0X_DataInit(&side_range);
+  if (Status != VL53L0X_ERROR_NONE) {
+    print_pal_error(Status);
+  }
+
+  printf("side StaticInit\r\n");
+  Status = VL53L0X_StaticInit(&side_range);
+  if (Status != VL53L0X_ERROR_NONE) {
+    print_pal_error(Status);
+  }
 }
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-
 
   /* Enable I-Cache---------------------------------------------------------*/
   // SCB_EnableICache();
@@ -294,48 +344,102 @@ int main(void)
   MX_I2C2_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  printf("\r\n\r\nStartup!\r\n");
 
+#if 1
   VL53L0X_Error Status = VL53L0X_ERROR_NONE;
-  VL53L0X_Dev_t MyDevice;
-  VL53L0X_Dev_t* pMyDevice = &MyDevice;
 
-  pMyDevice->I2cDevAddr      = 0x52;
-  pMyDevice->comms_type      =  1;
-  pMyDevice->comms_speed_khz =  400;
+  range_init();
 
-  if (Status == VL53L0X_ERROR_NONE) {
-    Status = VL53L0X_DataInit(&MyDevice);  // Data initialization
+  VL53L0X_DeviceInfo_t info = {0};
+
+  printf("front read\r\n");
+  Status = VL53L0X_GetDeviceInfo(&front_range, &info);
+  if (Status != VL53L0X_ERROR_NONE) {
     print_pal_error(Status);
+  } else {
+    printf("front: %s\r\n", info.Name);
   }
 
+  printf("side read\r\n");
+  Status = VL53L0X_GetDeviceInfo(&side_range, &info);
+  if (Status != VL53L0X_ERROR_NONE) {
+    print_pal_error(Status);
+  } else {
+    printf("side: %s\r\n", info.Name);
+  }
+
+  uint8_t VhvSettings = 0;
+  uint8_t PhaseCal = 0;
+  uint32_t refSpadCount = 0;
+  uint8_t isApertureSpads = 0;
+
+  VL53L0X_PerformRefCalibration(&front_range, &VhvSettings, &PhaseCal);
+  VL53L0X_PerformRefSpadManagement(&front_range, &refSpadCount,
+                                   &isApertureSpads);
+  VL53L0X_SetDeviceMode(&front_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+  VL53L0X_StartMeasurement(&front_range);
+
+  VL53L0X_PerformRefCalibration(&side_range, &VhvSettings, &PhaseCal);
+  VL53L0X_PerformRefSpadManagement(&side_range, &refSpadCount,
+                                   &isApertureSpads);
+  VL53L0X_SetDeviceMode(&side_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+  VL53L0X_StartMeasurement(&side_range);
+
+  VL53L0X_RangingMeasurementData_t data = {0};
+
+  while (1) {
+    HAL_Delay(50);
+    VL53L0X_GetRangingMeasurementData(&front_range, &data);
+    printf("front: %d\r\n", data.RangeMilliMeter);
+    VL53L0X_ClearInterruptMask(&front_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
+    HAL_Delay(50);
+    VL53L0X_GetRangingMeasurementData(&side_range, &data);
+    printf("side:  %d\r\n", data.RangeMilliMeter);
+    VL53L0X_ClearInterruptMask(&side_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
+  }
+
+#elif 0
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
-  drive_dir(16000, GPIO_PIN_RESET, GPIO_PIN_RESET);
+  uint16_t pwm = 0xFFFF * 0.4f;
 
-  Status = rangingTest(pMyDevice);
+  drive_dir(pwm, true, true);
 
-  drive_dir(0, GPIO_PIN_RESET, GPIO_PIN_RESET);
+  HAL_Delay(2000);
 
-  HAL_Delay(200);
-
-  drive_dir(16000, GPIO_PIN_SET, GPIO_PIN_SET);
-
-  HAL_Delay(1000);
-
-  drive_dir(0, GPIO_PIN_RESET, GPIO_PIN_SET);
+  drive_dir(0, true, true);
 
   HAL_Delay(200);
 
-  drive_dir(16000, GPIO_PIN_RESET, GPIO_PIN_SET);
+  drive_dir(pwm, false, false);
 
-  HAL_Delay(1000);
+  HAL_Delay(2000);
 
-  drive_dir(0, GPIO_PIN_SET, GPIO_PIN_SET);
+  drive_dir(0, true, true);
 
-  while(1);
+  HAL_Delay(200);
+
+  drive_dir(pwm, true, false);
+
+  HAL_Delay(2000);
+
+  drive_dir(0, true, true);
+
+  HAL_Delay(200);
+
+  drive_dir(pwm, false, true);
+
+  HAL_Delay(2000);
+
+  drive_dir(0, true, true);
+
+  while (1)
+    ;
+#endif
 
   /* USER CODE END 2 */
   /* Init scheduler */
@@ -351,8 +455,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+  while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -361,24 +464,23 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
   /** Configure LSE Drive Capability
-  */
+   */
   HAL_PWR_EnableBkUpAccess();
   /** Configure the main internal regulator output voltage
-  */
+   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the CPU, AHB and APB busses clocks
-  */
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -387,36 +489,32 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLN = 216;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 9;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
   /** Activate the Over-Drive mode
   */
-  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
-  {
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
     Error_Handler();
   }
   /** Initializes the CPU, AHB and APB busses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
-  {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK) {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_I2C1
-                              |RCC_PERIPHCLK_I2C2;
+  PeriphClkInitStruct.PeriphClockSelection =
+      RCC_PERIPHCLK_USART3 | RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_I2C2;
   PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     Error_Handler();
   }
 }
@@ -426,15 +524,14 @@ void SystemClock_Config(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM7 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM7 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
@@ -447,27 +544,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t* file, uint32_t line) {
   /* USER CODE BEGIN 6 */
   printf("Assertion failed at %s:%ld\n", file, line);
   /* USER CODE END 6 */
