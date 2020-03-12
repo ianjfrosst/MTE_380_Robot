@@ -1,6 +1,6 @@
 /* USER CODE BEGIN Header */
 /**
- * @file main.c
+ * @file main.cc
  * @author Ian Frosst
  * @brief Main program body
  * @version 0.1
@@ -21,9 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdbool>
+#include <cstdio>
+#include <cstdlib>
 
 #include "vl53l0x_api.h"
 #include "vl53l0x_platform.h"
@@ -51,7 +51,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void MX_FREERTOS_Init(void);
+extern "C" void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -225,19 +225,19 @@ VL53L0X_Error rangingTest(VL53L0X_Dev_t* pMyDevice) {
 void drive_dir(uint16_t pwm, bool left, bool right) {
   // Front left
   __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, pwm);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, !left);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_13, left ? GPIO_PIN_RESET : GPIO_PIN_SET);
 
   // Back left
   __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm);
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, !left);
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_2, left ? GPIO_PIN_RESET : GPIO_PIN_SET);
 
   // Front right
   __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, pwm);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, right);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, right ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
   // Back right
   __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, pwm);
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_11, right);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_11, right ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 #define DO_SETUP
@@ -385,7 +385,7 @@ int main(void) {
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
-  uint16_t pwm = 0xFFFF * 0.4f;
+  uint16_t pwm = PWM_MAX * 0.4f;
 
   drive_dir(pwm, true, true);
 

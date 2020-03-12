@@ -38,12 +38,14 @@ BUILD_DIR = build
 ######################################
 # source
 ######################################
+CXX_SOURCES = \
+Core/Src/main.cc
+
 # C sources
-CORE_SOURCES =  \
+CORE_SOURCES = \
 Core/Src/freertos.c \
 Core/Src/gpio.c \
 Core/Src/i2c.c \
-Core/Src/main.c \
 Core/Src/mpu9250.c \
 Core/Src/panic.c \
 Core/Src/retarget.c \
@@ -141,11 +143,13 @@ PREFIX = arm-none-eabi-
 # either it can be added to the PATH environment variable.
 ifdef GCC_PATH
 CC = $(GCC_PATH)/$(PREFIX)gcc
+CXX = $(GCC_PATH)/$(PREFIX)g++
 AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
 CP = $(GCC_PATH)/$(PREFIX)objcopy
 SZ = $(GCC_PATH)/$(PREFIX)size
 else
 CC = $(PREFIX)gcc
+CXX = $(PREFIX)g++
 AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
 SZ = $(PREFIX)size -A -x
@@ -200,7 +204,7 @@ C_INCLUDES =  \
 
 # compile gcc flags
 WARN = -Wall -Wextra -Wno-unused-parameter
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) $(WARN) -std=gnu11
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) $(WARN)
 CFLAGS += -fno-builtin -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
@@ -211,6 +215,8 @@ endif
 # Generate dependency information
 CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 
+# C++ specific flags
+CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions -fno-unwind-tables -Wno-missing-field-initializers
 
 #######################################
 # LDFLAGS
@@ -221,41 +227,49 @@ LDSCRIPT = STM32F767ZITx_FLASH.ld
 # libraries
 LIBS = -lm -larm_cortexM7lfdp_math
 LIBDIR = -LDrivers/CMSIS/Lib/GCC
-LDFLAGS = $(MCU) $(OPT) -specs=nosys.specs -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) $(OPT) -specs=nosys.specs -specs=nano.specs -T$(LDSCRIPT) \
+$(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
+.PHONY: all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
-
+	@$(SZ) $<
 
 #######################################
 # build the application
 #######################################
+# list of C++ objects
+OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(CXX_SOURCES:.cc=.o)))
+vpath %.cc $(sort $(dir $(CXX_SOURCES)))
 # list of objects
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
+$(BUILD_DIR)/%.o: %.cc Makefile | $(BUILD_DIR)
+	@echo "CXX	$<"
+	@$(CXX) -c $(CXXFLAGS) -std=gnu++17 -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.cc=.lst)) $< -o $@
+
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	@echo CC $<
-	@$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+	@echo "CC	$<"
+	@$(CC) -c $(CFLAGS) -std=gnu11 -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	@echo AS $<
+	@echo "AS	$<"
 	@$(AS) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) $(LDSCRIPT) Makefile
-	@echo LINK $@
+	@echo "LINK	$@"
 	@$(CC) $(OBJECTS) $(LDFLAGS) -o $@
-	@$(SZ) $@
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	@echo OBJCOPY $@
+	@echo "OBJCOPY	$@"
 	@$(HEX) $< $@
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	@echo OBJCOPY $@
+	@echo "OBJCOPY	$@"
 	@$(BIN) $< $@
 
 $(BUILD_DIR):
@@ -264,6 +278,7 @@ $(BUILD_DIR):
 #######################################
 # clean up
 #######################################
+.PHONY: clean
 clean:
 	-rm -fR $(BUILD_DIR)
 
