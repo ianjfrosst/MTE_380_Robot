@@ -16,7 +16,7 @@
 typedef struct {
   uint8_t id;  // 9250 or 9255
 
-  float Ax, Ay, Az;  // Units: g
+  float Ax, Ay, Az;  // Units: g (9.81 m/s^2)
   float Gx, Gy, Gz;  // Units: rad/s
   float Mx, My, Mz;  // units: uT
 

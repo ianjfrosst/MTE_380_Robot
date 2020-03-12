@@ -310,6 +310,33 @@ void range_calibrate(void) {
   VL53L0X_PerformRefSpadManagement(&side_range, &refSpadCount,
                                    &isApertureSpads);
 }
+
+void range_run(void) {
+  range_init();
+  range_calibrate();
+
+  VL53L0X_SetDeviceMode(&front_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+  VL53L0X_StartMeasurement(&front_range);
+
+  VL53L0X_SetDeviceMode(&side_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+  VL53L0X_StartMeasurement(&side_range);
+
+  VL53L0X_RangingMeasurementData_t data = {0};
+
+  while (1) {
+    HAL_Delay(50);
+    VL53L0X_GetRangingMeasurementData(&front_range, &data);
+    printf("front: %d\r\n", data.RangeMilliMeter);
+    VL53L0X_ClearInterruptMask(
+        &front_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
+    HAL_Delay(50);
+    VL53L0X_GetRangingMeasurementData(&side_range, &data);
+    printf("side:  %d\r\n", data.RangeMilliMeter);
+    VL53L0X_ClearInterruptMask(
+        &side_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
+  }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -322,10 +349,10 @@ int main(void) {
   /* USER CODE END 1 */
 
   /* Enable I-Cache---------------------------------------------------------*/
-  // SCB_EnableICache();
+  SCB_EnableICache();
 
   /* Enable D-Cache---------------------------------------------------------*/
-  // SCB_EnableDCache();
+  SCB_EnableDCache();
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -352,30 +379,7 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   printf("\r\n\r\nStartup!\r\n");
 
-#if 1
-  range_init();
-  range_calibrate();
-
-  VL53L0X_SetDeviceMode(&front_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
-  VL53L0X_StartMeasurement(&front_range);
-
-  VL53L0X_SetDeviceMode(&side_range, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
-  VL53L0X_StartMeasurement(&side_range);
-
-  VL53L0X_RangingMeasurementData_t data = {0};
-
-  while (1) {
-    HAL_Delay(50);
-    VL53L0X_GetRangingMeasurementData(&front_range, &data);
-    printf("front: %d\r\n", data.RangeMilliMeter);
-    VL53L0X_ClearInterruptMask(&front_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
-    HAL_Delay(50);
-    VL53L0X_GetRangingMeasurementData(&side_range, &data);
-    printf("side:  %d\r\n", data.RangeMilliMeter);
-    VL53L0X_ClearInterruptMask(&side_range, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
-  }
-
-#elif 0
+#if 0
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
